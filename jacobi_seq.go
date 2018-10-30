@@ -5,67 +5,15 @@ import (
 	"fmt"
 	"time"
 	"math"
+	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 )
 
-const (
-	hot = 1.0
-	cold = 0.0
-)
-
-type Matrix [][]float64
-
-func cloneMatrix(mat Matrix) [][]float64 {
-	length := len(mat)
-	clone := make([][]float64, length, length)
-	for i := range clone {
-		clone[i] = make([]float64, length, length)
-		copy(clone[i], mat[i])
-	}
-	
-	return clone
-}
-
-func initMatrix(n int, initialValue float64) [][]float64 {
-	mat := make([][]float64, n, n)
-	// Init inner cells value
-	for i := range mat {
-		// TODO: Look into how Go allocates the memory. Are rows contiguous? => Cache & Performance
-		mat[i] = make([]float64, n, n)
-		for j := range mat[i] {
-			mat[i][j] = initialValue
-		}
-	}
-
-	// Init hot boundary
-	for i := range mat {
-		mat[i][0] = hot
-		mat[i][n-1] = hot
-		mat[0][i] = hot
-	}
-
-	// Init cold boundary
-	for j := range mat {
-		mat[n-1][j] = cold
-	}
-
-	return mat
-}
-
-func printMatrix(mat Matrix) {
-	for _, row := range mat {
-		for _, el := range row {
-			fmt.Printf("%.4f ", el)
-		}
-		fmt.Println()
-	}
-}
-
-func runJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) (Matrix, int, float64) {
-	var matA, matB Matrix
+func RunJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) (matrix.Matrix, int, float64) {
+	var matA, matB matrix.Matrix
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we an aux matrix to keep the grid values in every iteration after computing new values
-	matA = initMatrix(nDim+2, initialValue)
-	matB = cloneMatrix(matA)
+	matA = matrix.InitMatrix(nDim+2, initialValue)
+	matB = matrix.CloneMatrix(matA)
 
 	matrixIters := nDim + 1
 
@@ -104,13 +52,13 @@ func main() {
 
 	before := time.Now()
 
-	resMatrix, nIters, maxDiff := runJacobi(*initialValuePtr, *nDimPtr, *maxIterationsPtr, *tolerancePtr)
+	resMatrix, nIters, maxDiff := RunJacobi(*initialValuePtr, *nDimPtr, *maxIterationsPtr, *tolerancePtr)
 
 	after := time.Now()
 
 	fmt.Println("Results:")
 	fmt.Println("Final grid:")
-	printMatrix(resMatrix)
+	matrix.PrintMatrix(resMatrix)
 	fmt.Printf("Number of iterations: %d\n", nIters)
 	fmt.Printf("Latest diff: %.4f\n", maxDiff)
 	fmt.Printf("Running time: %s\n", after.Sub(before))

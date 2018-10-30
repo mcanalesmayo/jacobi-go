@@ -9,10 +9,10 @@ import (
 const (
 	hot = 1.0
 	cold = 0.0
-	initialGrid = 0.5
+	initialValue = 0.5
+	nDim = 16
 	maxIterations = 1000
 	tol = 1.0e-4
-	nDim = 16
 )
 
 type Matrix [][]float64
@@ -28,13 +28,14 @@ func cloneMatrix(mat Matrix) [][]float64 {
 	return clone
 }
 
-func initMatrix(n int, fillVal float64) [][]float64 {
+func initMatrix(n int, initialValue float64) [][]float64 {
 	mat := make([][]float64, n, n)
+	// Init inner cells value
 	for i := range mat {
 		// TODO: Look into how Go allocates the memory. Are rows contiguous? => Cache & Performance
 		mat[i] = make([]float64, n, n)
 		for j := range mat[i] {
-			mat[i][j] = fillVal
+			mat[i][j] = initialValue
 		}
 	}
 
@@ -62,24 +63,23 @@ func printMatrix(mat Matrix) {
 	}
 }
 
-func main() {
+func runJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) (Matrix, int, float64) {
 	var matA, matB Matrix
-	matA = initMatrix(nDim+2, initialGrid)
+	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
+	// Therefore, we an aux matrix to keep the grid values in every iteration after computing new values
+	matA = initMatrix(nDim+2, initialValue)
 	matB = cloneMatrix(matA)
 
 	matrixIters := nDim + 1
 
-	iterations, maxDiff := 0, 1.0
+	nIters, maxDiff := 0, 1.0
 
-	fmt.Printf("Running simulation with tolerance=%f and max iterations=%d\n", tol, maxIterations)
-
-	before := time.Now()
-
-	for maxDiff > tol && iterations < maxIterations {
+	for maxDiff > tolerance && nIters < maxIters {
 		maxDiff = 0.0
 
 		for i := 1; i < matrixIters; i++ {
 			for j := 1; j < matrixIters; j++ {
+				// Compute new value with 3x3 filter with no corners
 				matB[i][j] = 0.2*(matA[i][j] + matA[i-1][j] + matA[i+1][j] + matA[i][j-1] + matA[i][j+1])
 				absDiff := math.Abs(matB[i][j] - matA[i][j])
 				if (absDiff > maxDiff) {
@@ -90,15 +90,25 @@ func main() {
 
 		// Swap matrices
 		matA, matB = matB, matA
-		iterations += 1
+		nIters += 1
 	}
+
+	return matA, nIters, maxDiff
+}
+
+func main() {
+	fmt.Printf("Running simulation with tolerance=%f and max iterations=%d\n", tol, maxIterations)
+
+	before := time.Now()
+
+	resMatrix, nIters, maxDiff := runJacobi(initialValue, nDim, maxIterations, tol)
 
 	after := time.Now()
 
 	fmt.Println("Final grid:")
-	printMatrix(matA)
+	printMatrix(resMatrix)
 	fmt.Println("Results:")
-	fmt.Printf("Iterations: %d\n", iterations)
-	fmt.Printf("Tolerance: %.4f\n", maxDiff)
+	fmt.Printf("Iterations: %d\n", nIters)
+	fmt.Printf("Final tolerance: %.4f\n", maxDiff)
 	fmt.Printf("Running time: %s\n", after.Sub(before))
 }

@@ -22,8 +22,8 @@ func cloneMatrix(mat Matrix) [][]float64 {
 	clone := make([][]float64, length, length)
 	for i := range clone {
 		clone[i] = make([]float64, length, length)
+		copy(clone[i], mat[i])
 	}
-	copy(clone, mat)
 	
 	return clone
 }
@@ -31,6 +31,7 @@ func cloneMatrix(mat Matrix) [][]float64 {
 func initMatrix(n int, fillVal float64) [][]float64 {
 	mat := make([][]float64, n, n)
 	for i := range mat {
+		// TODO: Look into how Go allocates the memory. Are rows contiguous? => Cache & Performance
 		mat[i] = make([]float64, n, n)
 		for j := range mat[i] {
 			mat[i][j] = fillVal
@@ -55,7 +56,7 @@ func initMatrix(n int, fillVal float64) [][]float64 {
 func printMatrix(mat Matrix) {
 	for _, row := range mat {
 		for _, el := range row {
-			fmt.Printf("%f ", el)
+			fmt.Printf("%.4f ", el)
 		}
 		fmt.Println()
 	}
@@ -66,7 +67,7 @@ func main() {
 	matA = initMatrix(nDim+2, initialGrid)
 	matB = cloneMatrix(matA)
 
-	matrixIters := nDim - 1
+	matrixIters := nDim + 1
 
 	iterations, maxDiff := 0, 1.0
 
@@ -98,6 +99,6 @@ func main() {
 	printMatrix(matA)
 	fmt.Println("Results:")
 	fmt.Printf("Iterations: %d\n", iterations)
-	fmt.Printf("Tolerance: %f\n", maxDiff)
+	fmt.Printf("Tolerance: %.4f\n", maxDiff)
 	fmt.Printf("Running time: %s\n", after.Sub(before))
 }

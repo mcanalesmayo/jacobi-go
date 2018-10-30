@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"time"
 	"math"
@@ -9,10 +10,6 @@ import (
 const (
 	hot = 1.0
 	cold = 0.0
-	initialValue = 0.5
-	nDim = 16
-	maxIterations = 1000
-	tol = 1.0e-4
 )
 
 type Matrix [][]float64
@@ -97,18 +94,24 @@ func runJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) 
 }
 
 func main() {
-	fmt.Printf("Running simulation with tolerance=%f and max iterations=%d\n", tol, maxIterations)
+	initialValuePtr := flag.Float64("init-value", 0.5, "initial value of the inner grid cells")
+	nDimPtr := flag.Int("size", 16, "size of each side of the grid")
+	maxIterationsPtr := flag.Int("max-iters", 1000, "maximum number of iterations")
+	tolerancePtr := flag.Float64("tol", 1.0e-4, "difference tolerance")
+
+	fmt.Printf("Running simulation with initial value=%.4f, num dims=%d, max iterations=%d and tolerance=%.4f\n",
+		*initialValuePtr, *nDimPtr, *maxIterationsPtr, *tolerancePtr)
 
 	before := time.Now()
 
-	resMatrix, nIters, maxDiff := runJacobi(initialValue, nDim, maxIterations, tol)
+	resMatrix, nIters, maxDiff := runJacobi(*initialValuePtr, *nDimPtr, *maxIterationsPtr, *tolerancePtr)
 
 	after := time.Now()
 
+	fmt.Println("Results:")
 	fmt.Println("Final grid:")
 	printMatrix(resMatrix)
-	fmt.Println("Results:")
-	fmt.Printf("Iterations: %d\n", nIters)
-	fmt.Printf("Final tolerance: %.4f\n", maxDiff)
+	fmt.Printf("Number of iterations: %d\n", nIters)
+	fmt.Printf("Latest diff: %.4f\n", maxDiff)
 	fmt.Printf("Running time: %s\n", after.Sub(before))
 }

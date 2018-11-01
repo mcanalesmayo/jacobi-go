@@ -11,9 +11,31 @@ const (
 
 type Matrix [][]float64
 
-func CloneMatrix(mat Matrix) [][]float64 {
+func (matA Matrix) CompareTo(matB Matrix) bool {
+	if matA == nil && matB == nil {
+		return true
+	} else if len(matA) != len(matB) {
+		return false
+	} else {
+		for i := range matA {
+			if len(matA[i]) != len(matB[i]) {
+				return false
+			} else {
+				for j := range matB {
+					if matA[i][j] != matB[i][j] {
+						return false
+					}
+				}
+			}
+		}
+
+		return true
+	}
+}
+
+func (mat Matrix) Clone() Matrix {
 	length := len(mat)
-	clone := make([][]float64, length, length)
+	clone := make(Matrix, length, length)
 	for i := range clone {
 		clone[i] = make([]float64, length, length)
 		copy(clone[i], mat[i])
@@ -22,7 +44,7 @@ func CloneMatrix(mat Matrix) [][]float64 {
 	return clone
 }
 
-func InitMatrix(n int, initialValue float64) Matrix {
+func NewMatrix(initialValue float64, n int) Matrix {
 	mat := make(Matrix, n, n)
 	// Init inner cells value
 	for i := range mat {
@@ -48,7 +70,7 @@ func InitMatrix(n int, initialValue float64) Matrix {
 	return mat
 }
 
-func PrintMatrix(mat Matrix) {
+func (mat Matrix) Print() {
 	for _, row := range mat {
 		for _, el := range row {
 			fmt.Printf("%.4f ", el)

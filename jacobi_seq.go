@@ -12,8 +12,8 @@ func RunJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) 
 	var matA, matB matrix.Matrix
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we an aux matrix to keep the grid values in every iteration after computing new values
-	matA = matrix.InitMatrix(nDim+2, initialValue)
-	matB = matrix.CloneMatrix(matA)
+	matA = matrix.NewMatrix(initialValue, nDim+2)
+	matB = matA.Clone()
 
 	matrixIters := nDim + 1
 
@@ -58,7 +58,7 @@ func main() {
 
 	fmt.Println("Results:")
 	fmt.Println("Final grid:")
-	matrix.PrintMatrix(resMatrix)
+	resMatrix.Print()
 	fmt.Printf("Number of iterations: %d\n", nIters)
 	fmt.Printf("Latest diff: %.4f\n", maxDiff)
 	fmt.Printf("Running time: %s\n", after.Sub(before))

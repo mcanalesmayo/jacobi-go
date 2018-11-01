@@ -1,13 +1,14 @@
 package test
 
 import (
+	"fmt"
 	"testing"
 	"github.com/mcanalesmayo/jacobi-go"
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 )
 
 func TestRunJacobi(t *testing.T) {
-	initialValue, nDim, maxIters, tol := 0.5, 16, 1000, 1.0e-4
+	initialValue, nDim, maxIters, tolerance := 0.5, 16, 1000, 1.0e-4
 
 	expectedMat := matrix.Matrix{
 		{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
@@ -30,7 +31,10 @@ func TestRunJacobi(t *testing.T) {
 		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 	}
 
-	actualMat, _, _ := jacobi.RunJacobi(initialValue, nDim, maxIters, tol)
+	fmt.Printf("Running simulation with initial value=%.4f, num dims=%d, max iterations=%d and tolerance=%.4f\n",
+		initialValue, nDim, maxIters, tolerance)
+
+	actualMat, _, _ := jacobi.RunJacobi(initialValue, nDim, maxIters, tolerance)
 	if !actualMat.CompareTo(expectedMat) {
 		t.Errorf("Expected matrix doesn't match the actual one")
 	}

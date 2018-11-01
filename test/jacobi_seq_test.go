@@ -1,7 +1,8 @@
-package main
+package test
 
 import (
 	"testing"
+	"github.com/mcanalesmayo/jacobi-go"
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 )
 
@@ -29,7 +30,7 @@ func TestRunJacobi(t *testing.T) {
 		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 	}
 
-	actualMat, _, _ := RunJacobi(initialValue, nDim, maxIters, tol)
+	actualMat, _, _ := jacobi.RunJacobi(initialValue, nDim, maxIters, tol)
 	if !actualMat.CompareTo(expectedMat) {
 		t.Errorf("Expected matrix doesn't match the actual one")
 	}

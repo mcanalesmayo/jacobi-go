@@ -1,4 +1,4 @@
-package main
+package jacobi
 
 import (
 	"flag"

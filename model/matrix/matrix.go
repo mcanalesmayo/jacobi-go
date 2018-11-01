@@ -22,8 +22,8 @@ func CloneMatrix(mat Matrix) [][]float64 {
 	return clone
 }
 
-func InitMatrix(n int, initialValue float64) [][]float64 {
-	mat := make([][]float64, n, n)
+func InitMatrix(n int, initialValue float64) Matrix {
+	mat := make(Matrix, n, n)
 	// Init inner cells value
 	for i := range mat {
 		// TODO: Look into how Go allocates the memory. Are rows contiguous? => Cache & Performance

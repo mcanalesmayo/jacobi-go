@@ -10,6 +10,23 @@ const (
 )
 
 type Matrix [][]float64
+type Row []float64
+
+func (rowA Row) CompareTo(rowB Row) bool {
+	if rowA == nil && rowB == nil {
+		return true
+	} else if len(rowA) != len(rowB) {
+		return false
+	} else {
+		for i := range rowA {
+			if (rowA[i] != rowB[i]) {
+				return false
+			}
+		}
+
+		return true
+	}
+}
 
 func (matA Matrix) CompareTo(matB Matrix) bool {
 	if matA == nil && matB == nil {
@@ -18,14 +35,10 @@ func (matA Matrix) CompareTo(matB Matrix) bool {
 		return false
 	} else {
 		for i := range matA {
-			if len(matA[i]) != len(matB[i]) {
+			// Need to assign to vars so that Row methods can be used
+			var rowA, rowB Row = matA[i], matB[i]
+			if (!rowA.CompareTo(rowB)) {
 				return false
-			} else {
-				for j := range matB {
-					if matA[i][j] != matB[i][j] {
-						return false
-					}
-				}
 			}
 		}
 

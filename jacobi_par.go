@@ -7,110 +7,102 @@ import (
 )
 
 type worker struct {
-	subprob struct {
-		coords struct {
-			// Top-left corner
-			x0 int
-			y0 int
-			// Bottom-right corner
-			x1 int
-			y1 int
-		}
-		// Precomputed size (x1 - x0) or (y1 - y0)
-		size int
-	}
+	// Define subproblem matrix
+	matDef matrix.MatrixDef
 	// For sharing values with threads working on adjacent submatrices
-	toUpper chan float64
-	toLower chan float64
+	toTop chan float64
+	toBottom chan float64
 	toRight chan float64
 	toLeft chan float64
-	fromUpper chan float64
-	fromLower chan float64
+	fromTop chan float64
+	fromBottom chan float64
 	fromRight chan float64
 	fromLeft chan float64
 }
 
 func (worker worker) mergeSubproblem(resMat *matrix.Matrix, subprobResMat matrix.Matrix) {
-	coords := worker.subprob.coords
+	coords := worker.matDef.Coords
 
-	for i := coords.x0; i < coords.x1; i++ {
-		for j := coords.y0; j < coords.y1; j++ {
+	for i := coords.X0; i < coords.X1; i++ {
+		for j := coords.Y0; j < coords.Y1; j++ {
 			// Values are ordered by the sender
-			resMat[i][j] = subprobResMat[i][j]
+			(*resMat)[i][j] = subprobResMat[i][j]
 		}
 	}
 }
 
 func (worker worker) maxReduce(maxDiff float64) float64 {
 	// TODO: Implement max reduce of all threads to compute actual maxDiff value
+	return maxDiff
 }
 
 func (worker worker) sendBorderValues(mat matrix.Matrix) {
-	coords := worker.subprob.coords
-	matLen = worker.subprob.size
+	coords := worker.matDef.Coords
+	matLen := worker.matDef.Size
 
 	// Since subproblem coordinates never change, this solution
 	// isn't the best one in terms of performance, as these
 	// checks are done for every jacobi iteration
-	if coords.y0 != 0 {
+	if coords.Y0 != 0 {
 		for j := 0; j < matLen; j++ {
-			worker.toUpper <- mat[0][j]
+			worker.toTop <- mat[0][j]
 		}
 	}
-	if coords.y1 != 0 {
+	if coords.Y1 != 0 {
 		for j := 0; j < matLen; j++ {
-			worker.toLower <- mat[matLen-1][j]
+			worker.toBottom <- mat[matLen-1][j]
 		}
 	}
-	if coords.x0 != 0 {
+	if coords.X0 != 0 {
 		for i := 0; i < matLen; i++ {
-			worker.toLower <- mat[i][0]
+			worker.toRight <- mat[i][0]
 		}
 	}
-	if coords.x1 != 0 {
+	if coords.X1 != 0 {
 		for i := 0; i < matLen; i++ {
-			worker.toLower <- mat[i][matLen-1]
+			worker.toLeft <- mat[i][matLen-1]
 		}
 	}
 }
 
 func (worker worker) recvBorderValues(mat *matrix.Matrix) {
-	coords := worker.subprob.coords
-	matLen = worker.subprob.size
+	coords := worker.matDef.Coords
+	matLen := worker.matDef.Size
 
 	// Since subproblem coordinates never change, this solution
 	// isn't the best one in terms of performance, as these
 	// checks are done for every jacobi iteration
-	if coords.y0 != 0 {
+	if coords.Y0 != 0 {
 		for j := 0; j < matLen; j++ {
-			mat[0][j] <- worker.fromUpper
+			(*mat)[0][j] = <- worker.fromTop
 		}
 	}
-	if coords.y1 != 0 {
+	if coords.Y1 != 0 {
 		for j := 0; j < matLen; j++ {
-			mat[matLen-1][j] <- worker.fromLower
+			(*mat)[matLen-1][j] = <- worker.fromBottom
 		}
 	}
-	if coords.x0 != 0 {
+	if coords.X0 != 0 {
 		for i := 0; i < matLen; i++ {
-			mat[i][0] <- worker.fromRight
+			(*mat)[i][0] = <- worker.fromRight
 		}
 	}
-	if coords.x1 != 0 {
+	if coords.X1 != 0 {
 		for i := 0; i < matLen; i++ {
-			mat[i][matLen-1] <- worker.fromLeft
+			(*mat)[i][matLen-1] = <- worker.fromLeft
 		}
 	}
 }
 
-func (worker worker) solveSubproblem(resMat *matrix.Matrix) {
+func (worker worker) solveSubproblem(resMat *matrix.Matrix, initialValue float64, maxIters int, tolerance float64) {
 	var matA, matB matrix.Matrix
+	initialValue, nDim, matDef := initialValue, worker.matDef.Size, worker.matDef
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we an aux matrix to keep the grid values in every iteration after computing new values
-	matA = matrix.NewMatrix(initialValue, nDim+2)
+	matA = matrix.NewSubprobMatrix(initialValue, nDim+2, matDef)
 	matB = matA.Clone()
 
-	maxDiff, maxIters, subprobSize := 1.0, nDim + 1, worker.subprob.size
+	maxDiff, subprobSize := 1.0, worker.matDef.Size
 
 	for nIters := 0; maxDiff > tolerance && nIters < maxIters; nIters++ {
 		maxDiff = 0.0
@@ -128,7 +120,7 @@ func (worker worker) solveSubproblem(resMat *matrix.Matrix) {
 			}
 		}
 
-		worker.recvBorderValues(matA)
+		worker.recvBorderValues(&matA)
 		// TODO: compute cells adjacent to outer cells
 		// Actual max diff is maximum of all threads max diff
 		maxDiff = worker.maxReduce(maxDiff)
@@ -140,21 +132,22 @@ func (worker worker) solveSubproblem(resMat *matrix.Matrix) {
 	worker.mergeSubproblem(resMat, matA)
 }
 
-func RunJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) (matrix.Matrix, int, float64) {
+func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
 	// Resulting matrix
 	resMat := matrix.NewMatrix(0.0, nDim)
 
 	var wg sync.WaitGroup
 	wg.Add(nThreads)
 
-	for i := range nThreads {
+	for i := 0; i < nThreads; i++ {
 		// TODO: Assign channels between threads
 		go worker{
 
-		}.solveSubproblem(&resMat)
+		}.solveSubproblem(&resMat, initialValue, maxIters, tolerance)
 	}
 
 	wg.Wait()
 
-	return resMat, nIters, maxDiff
+	// TODO: Return number of iterations and maximum diff
+	return resMat
 }

@@ -11,6 +11,14 @@ const (
 
 type Matrix [][]float64
 type Row []float64
+type MatrixDef struct {
+	Coords struct {
+		// Top-left corner and bottom-right corner
+		X0, Y0, X1, Y1 int
+	}
+	// Precomputed size (x1 - x0) or (y1 - y0)
+	Size int
+}
 
 func (rowA Row) CompareTo(rowB Row) bool {
 	if rowA == nil && rowB == nil {
@@ -81,6 +89,11 @@ func NewMatrix(initialValue float64, n int) Matrix {
 	}
 
 	return mat
+}
+
+func NewSubprobMatrix(initialValue float64, n int, matDef MatrixDef) Matrix {
+	// TODO: Implement subproblem matrix initialization
+	return NewMatrix(initialValue, n)
 }
 
 func (mat Matrix) Print() {

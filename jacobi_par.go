@@ -94,7 +94,9 @@ func (worker worker) recvBorderValues(mat *matrix.Matrix) {
 	}
 }
 
-func (worker worker) solveSubproblem(resMat *matrix.Matrix, initialValue float64, maxIters int, tolerance float64) {
+func (worker worker) solveSubproblem(resMat *matrix.Matrix, initialValue float64, maxIters int, tolerance float64, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	var matA, matB matrix.Matrix
 	initialValue, nDim, matDef := initialValue, worker.matDef.Size, worker.matDef
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
@@ -143,7 +145,7 @@ func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float6
 		// TODO: Assign channels between threads
 		go worker{
 
-		}.solveSubproblem(&resMat, initialValue, maxIters, tolerance)
+		}.solveSubproblem(&resMat, initialValue, maxIters, tolerance, &wg)
 	}
 
 	wg.Wait()

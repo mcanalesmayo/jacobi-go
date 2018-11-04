@@ -16,7 +16,7 @@ type MatrixDef struct {
 		// Top-left corner and bottom-right corner
 		X0, Y0, X1, Y1 int
 	}
-	// Precomputed size (x1 - x0) or (y1 - y0)
+	// Precomputed matrix size: len(matrix)
 	Size int
 }
 
@@ -91,9 +91,9 @@ func NewMatrix(initialValue float64, n int) Matrix {
 	return mat
 }
 
-func NewSubprobMatrix(initialValue float64, n int, matDef MatrixDef) Matrix {
+func NewSubprobMatrix(initialValue float64, matDef MatrixDef) Matrix {
 	// TODO: Implement subproblem matrix initialization
-	return NewMatrix(initialValue, n)
+	return NewMatrix(initialValue, matDef.Size)
 }
 
 func (mat Matrix) Print() {

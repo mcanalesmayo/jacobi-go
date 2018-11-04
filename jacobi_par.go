@@ -1,42 +1,71 @@
 package jacobi
 
 import (
-	"math"
 	"sync"
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 )
 
 type worker struct {
+	id int
 	// Define subproblem matrix
 	matDef matrix.MatrixDef
+	// Number of global workers
+	globalParams struct {
+		nWorkers, size int
+	}
 	// For sharing values with threads working on adjacent submatrices
-	toTop chan float64
-	toBottom chan float64
-	toRight chan float64
-	toLeft chan float64
-	fromTop chan float64
-	fromBottom chan float64
-	fromRight chan float64
-	fromLeft chan float64
+	toTop, toBottom, toRight, toLeft chan float64
+	fromTop, fromBottom, fromRight, fromLeft chan float64
+	// For reducing maxDiff
+	maxDiffRes []chan float64
 }
 
-func (worker worker) mergeSubproblem(resMat *matrix.Matrix, subprobResMat matrix.Matrix) {
+// Merges the worker subproblem resulting matrix into the global resulting matrix
+func (worker worker) mergeSubproblem(resMat, subprobResMat matrix.Matrix) {
 	coords := worker.matDef.Coords
 
 	for i := coords.X0; i < coords.X1; i++ {
 		for j := coords.Y0; j < coords.Y1; j++ {
 			// Values are ordered by the sender
-			(*resMat)[i][j] = subprobResMat[i][j]
+			resMat[i][j] = subprobResMat[i][j]
 		}
 	}
 }
 
+// For the sake of simplicity, reduction is centralized on the 'root' worker, which will fan out the resulting value
+// TODO: Look into a better way to do a parallel reduce
 func (worker worker) maxReduce(maxDiff float64) float64 {
-	// TODO: Implement max reduce of all threads to compute actual maxDiff value
-	return maxDiff
+	isRoot := worker.id == 0
+
+	// maximum maxDiff found at this point
+	var maxMaxDiff float64
+	if isRoot {
+		// Reduction centralized in the 'root' worker
+		// Collect and reduce maxDiff values from all workers
+		maxMaxDiff = maxDiff
+		for i := 0; i < worker.globalParams.nWorkers - 1; i++ {
+			otherMaxDiff := <- worker.maxDiffRes[i]
+			if otherMaxDiff > maxMaxDiff {
+				maxMaxDiff = otherMaxDiff
+			}
+		}
+		
+		// Fan out the result
+		for i := 0; i < worker.globalParams.nWorkers - 1; i++ {
+			worker.maxDiffRes[i] <- maxMaxDiff
+		}
+	} else {
+		// 'Non-root' workers send their results
+		worker.maxDiffRes[worker.id] <- maxDiff
+		// Wait for result
+		maxMaxDiff = <- worker.maxDiffRes[worker.id]
+	}
+
+	return maxMaxDiff
 }
 
-func (worker worker) sendBorderValues(mat matrix.Matrix) {
+// Sends the worker outer values to adjacent workers
+func (worker worker) sendOuterCells(mat matrix.Matrix) {
 	coords := worker.matDef.Coords
 	matLen := worker.matDef.Size
 
@@ -48,7 +77,7 @@ func (worker worker) sendBorderValues(mat matrix.Matrix) {
 			worker.toTop <- mat[0][j]
 		}
 	}
-	if coords.Y1 != 0 {
+	if coords.Y1 != worker.globalParams.size {
 		for j := 0; j < matLen; j++ {
 			worker.toBottom <- mat[matLen-1][j]
 		}
@@ -58,43 +87,65 @@ func (worker worker) sendBorderValues(mat matrix.Matrix) {
 			worker.toRight <- mat[i][0]
 		}
 	}
-	if coords.X1 != 0 {
+	if coords.X1 != worker.globalParams.size {
 		for i := 0; i < matLen; i++ {
 			worker.toLeft <- mat[i][matLen-1]
 		}
 	}
 }
 
-func (worker worker) recvBorderValues(mat *matrix.Matrix) {
+// Gets the adjacent workers outer values
+func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
 	coords := worker.matDef.Coords
 	matLen := worker.matDef.Size
 
-	// Since subproblem coordinates never change, this solution
-	// isn't the best one in terms of performance, as these
-	// checks are done for every jacobi iteration
 	if coords.Y0 != 0 {
 		for j := 0; j < matLen; j++ {
-			(*mat)[0][j] = <- worker.fromTop
+			mat[0][j] = <- worker.fromTop
 		}
 	}
-	if coords.Y1 != 0 {
+	if coords.Y1 != worker.globalParams.size {
 		for j := 0; j < matLen; j++ {
-			(*mat)[matLen-1][j] = <- worker.fromBottom
+			mat[matLen-1][j] = <- worker.fromBottom
 		}
 	}
 	if coords.X0 != 0 {
 		for i := 0; i < matLen; i++ {
-			(*mat)[i][0] = <- worker.fromRight
+			mat[i][0] = <- worker.fromRight
 		}
 	}
-	if coords.X1 != 0 {
+	if coords.X1 != worker.globalParams.size {
 		for i := 0; i < matLen; i++ {
-			(*mat)[i][matLen-1] = <- worker.fromLeft
+			mat[i][matLen-1] = <- worker.fromLeft
 		}
 	}
 }
 
-func (worker worker) solveSubproblem(resMat *matrix.Matrix, initialValue float64, maxIters int, tolerance float64, wg *sync.WaitGroup) {
+// Computes the outer cells of this worker submatrix, which are adjacent to other workers submatrices
+// Returns the updated maxDiff value
+func (worker worker) computeOuterCells(dst, src matrix.Matrix, prevMaxDiff float64) float64 {
+	maxDiff, matLen := prevMaxDiff, worker.matDef.Size
+	// TODO: This is probably not the best way to compute the outer cells in terms of performance
+	for k := 1; k < matLen - 1; k++ {
+		// Top outer cells
+		dst[1][k] = 0.2*(src[1][k] + src[1][k-1] + src[1][k+1] + src[0][k] + src[2][k])
+		maxDiff = MaxDiff(maxDiff, dst[1][k], src[1][k])
+		// Bottom outer cells
+		dst[matLen-2][k] = 0.2*(src[matLen-2][k] + src[matLen-2][k-1] + src[matLen-2][k+1] + src[matLen-3][k] + src[matLen-1][k])
+		maxDiff = MaxDiff(maxDiff, dst[matLen-2][k], src[matLen-2][k])
+		// Left outer cells
+		dst[k][1] = 0.2*(src[k][1] + src[k-1][1] + src[k+1][1] + src[k][0] + src[k][2])
+		maxDiff = MaxDiff(maxDiff, dst[k][1], src[k][1])
+		// Right outer cells
+		dst[k][matLen-2] = 0.2*(src[k][matLen-2] + src[k-1][matLen-2] + src[k+2][matLen-2] + src[k][matLen-3] + src[k][matLen-1])
+		maxDiff = MaxDiff(maxDiff, dst[k][matLen-2], src[k][matLen-2])
+	}
+
+	return maxDiff
+}
+
+// Runs the jacobi method for the worker subproblem to get its partial result
+func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64, maxIters int, tolerance float64, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	var matA, matB matrix.Matrix
@@ -109,22 +160,19 @@ func (worker worker) solveSubproblem(resMat *matrix.Matrix, initialValue float64
 	for nIters := 0; maxDiff > tolerance && nIters < maxIters; nIters++ {
 		maxDiff = 0.0
 
-		worker.sendBorderValues(matA)
+		worker.sendOuterCells(matA)
 
 		for i := 1; i < subprobSize-1; i++ {
 			for j := 1; j < subprobSize-1; j++ {
 				// Compute new value with 3x3 filter with no corners
 				matB[i][j] = 0.2*(matA[i][j] + matA[i-1][j] + matA[i+1][j] + matA[i][j-1] + matA[i][j+1])
-				absDiff := math.Abs(matB[i][j] - matA[i][j])
-				if (absDiff > maxDiff) {
-					maxDiff = absDiff
-				}
+				maxDiff = MaxDiff(maxDiff, matA[i][j], matB[i][j])
 			}
 		}
 
-		worker.recvBorderValues(&matA)
-		// TODO: compute cells adjacent to outer cells
-		// Actual max diff is maximum of all threads max diff
+		worker.recvAdjacentCells(matA)
+		maxDiff = worker.computeOuterCells(matB, matA, maxDiff)
+		// Actual max diff is maximum of all threads maxDiff
 		maxDiff = worker.maxReduce(maxDiff)
 
 		// Swap matrices
@@ -134,6 +182,7 @@ func (worker worker) solveSubproblem(resMat *matrix.Matrix, initialValue float64
 	worker.mergeSubproblem(resMat, matA)
 }
 
+// Parallel version of the jacobi method using Go routines
 func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
 	// Resulting matrix
 	resMat := matrix.NewMatrix(0.0, nDim)
@@ -142,10 +191,10 @@ func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float6
 	wg.Add(nThreads)
 
 	for i := 0; i < nThreads; i++ {
-		// TODO: Assign channels between threads
+		// TODO: Initialize workers params
 		go worker{
 
-		}.solveSubproblem(&resMat, initialValue, maxIters, tolerance, &wg)
+		}.solveSubproblem(resMat, initialValue, maxIters, tolerance, &wg)
 	}
 
 	wg.Wait()

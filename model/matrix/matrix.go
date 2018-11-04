@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	hot = 1.0
-	cold = 0.0
+	Hot = 1.0
+	Cold = 0.0
 )
 
 type Matrix [][]float64
@@ -65,7 +65,7 @@ func (mat Matrix) Clone() Matrix {
 	return clone
 }
 
-func NewMatrix(initialValue float64, n int) Matrix {
+func NewMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) Matrix {
 	mat := make(Matrix, n, n)
 	// Init inner cells value
 	for i := range mat {
@@ -76,24 +76,19 @@ func NewMatrix(initialValue float64, n int) Matrix {
 		}
 	}
 
-	// Init hot boundary
+	// Init top, right and left boundaries
 	for i := range mat {
-		mat[i][0] = hot
-		mat[i][n-1] = hot
-		mat[0][i] = hot
+		mat[0][i] = topBoundary
+		mat[i][0] = leftBoundary
+		mat[i][n-1] = rightBoundary
 	}
 
-	// Init cold boundary
+	// Init bottom boundary
 	for j := range mat {
-		mat[n-1][j] = cold
+		mat[n-1][j] = bottomBoundary
 	}
 
 	return mat
-}
-
-func NewSubprobMatrix(initialValue float64, matDef MatrixDef) Matrix {
-	// TODO: Implement subproblem matrix initialization
-	return NewMatrix(initialValue, matDef.Size)
 }
 
 func (mat Matrix) Print() {

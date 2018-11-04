@@ -285,10 +285,13 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	defer wg.Done()
 
 	var matA, matB matrix.Matrix
-	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size
+	maxDiff, matLen := 1.0, worker.matDef.Size
+	// TODO: Setup boundaries for matrix.NewMatrix, depending on worker submatrix location (worker id)
+
+
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
-	// Therefore, we an aux matrix to keep the grid values in every iteration after computing new values
-	matA = matrix.NewSubprobMatrix(initialValue, matDef)
+	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
+	matA = matrix.NewMatrix(initialValue, matLen, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 	matB = matA.Clone()
 
 	for nIters := 0; maxDiff > tolerance && nIters < maxIters; nIters++ {
@@ -323,7 +326,7 @@ func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float6
 
 
 	// Resulting matrix, init value doesn't matter at this point as workers will overwrite all cells
-	resMat := matrix.NewMatrix(0.0, nDim+2)
+	resMat := matrix.NewMatrix(0.0, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 
 	var wg sync.WaitGroup
 

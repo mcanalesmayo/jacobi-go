@@ -285,14 +285,20 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	defer wg.Done()
 
 	var matA, matB matrix.Matrix
-	maxDiff, matLen := 1.0, worker.matDef.Size
-	// TODO: Setup boundaries for matrix.NewMatrix, depending on worker submatrix location (worker id)
-
+	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size+2
+	// Adjacent cells are needed to compute outer cells
+	cloneMatDef := matrix.MatrixDef{
+		matrix.Coords{matDef.Coords.X0-1, matDef.Coords.Y0-1, matDef.Coords.X1+1, matDef.Coords.Y1+1},
+		matLen,
+	}
 
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
-	matA = matrix.NewMatrix(initialValue, matLen, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
-	matB = matA.Clone()
+	matA = resMat.Clone(cloneMatDef)
+	matB = matA.Clone(matrix.MatrixDef{
+		matrix.Coords{0, 0, matLen-1, matLen-1},
+		matLen,
+	})
 
 	for nIters := 0; maxDiff > tolerance && nIters < maxIters; nIters++ {
 		maxDiff = 0.0
@@ -323,24 +329,20 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 // Parallel version of the jacobi method using Go routines
 func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
 	// TODO: Check preconditions
-
-
-	// Resulting matrix, init value doesn't matter at this point as workers will overwrite all cells
-	resMat := matrix.NewMatrix(0.0, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
-
-	var wg sync.WaitGroup
-
-	subprobSize := int(math.Sqrt(float64((nDim*nDim)/nThreads)))
-	maxDiffResChns := make([]chan float64, nThreads)
-	adjacentChns := newAdjacentChns(nThreads, nDim, subprobSize)
+	resMat, subprobSize, nThreadsSqrt, maxDiffResChns := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), int(math.Sqrt(float64((nDim*nDim)/nThreads))), int(math.Sqrt(float64(nThreads))), make([]chan float64, nThreads)
 	for i := 0; i < nThreads; i++ {
 		// These channels can also be unbuffered, as there's currently no computation between sending and receiving
 		maxDiffResChns[i] = make(chan float64, 1)
 	}
+	workerMatLen, adjacentChns := nDim/nThreadsSqrt, newAdjacentChns(nThreads, nDim, subprobSize)
 
+	var wg sync.WaitGroup
 	wg.Add(nThreads)
 	for id := 0; id < nThreads; id++ {
-		// TODO: Initialize workers params
+		x0, y0 := (id/nThreadsSqrt)*workerMatLen, (id%nThreadsSqrt)*workerMatLen
+		x1, y1 := x0 + workerMatLen - 1, y0 + workerMatLen - 1
+		coords := matrix.Coords{x0, y0, x1, y1}
+
 		go worker{
 			id: id,
 			globalParams: globalParams{
@@ -348,6 +350,7 @@ func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float6
 				size: nDim,
 			},
 			matDef: matrix.MatrixDef{
+				Coords: coords,
 				Size: subprobSize,
 			},
 			adjacent: adjacentChns[id],

@@ -1,15 +1,10 @@
 package jacobi
 
-import (
-	"math"
-)
-
-// Computes the new maxDiff value
-func MaxDiff(prevMaxDiff, valA, valB float64) float64 {
-	maxDiff, absDiff := prevMaxDiff, math.Abs(valB - valA)
-	if (absDiff > maxDiff) {
-		maxDiff = absDiff
+// Gets the new maxDiff value
+func MaxMaxDiff(maxDiffB, maxDiffA float64) float64 {
+	if (maxDiffB > maxDiffA) {
+		return maxDiffB
+	} else {
+		return maxDiffA
 	}
-
-	return maxDiff
 }

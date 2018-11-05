@@ -33,8 +33,7 @@ func newAdjacentChns(nThreads, nDim, subprobSize int) []adjacentChns {
 	res, nThreadsSqrt := make([]adjacentChns, nThreads), int(math.Sqrt(float64(nThreads)))
 
 	for id := 0; id < nThreads; id++ {
-		rowN := id % nThreadsSqrt
-		columnN := int(id / nThreadsSqrt)
+		rowN, columnN := id % nThreadsSqrt, int(id / nThreadsSqrt)
 
 		if rowN == 0 {
 			if columnN == 0 {
@@ -159,9 +158,8 @@ func newAdjacentChns(nThreads, nDim, subprobSize int) []adjacentChns {
 // Merges the worker subproblem resulting matrix into the global resulting matrix
 func (worker worker) mergeSubproblem(resMat, subprobResMat matrix.Matrix) {
 	coords := worker.matDef.Coords
-
-	for i := coords.X0; i < coords.X1; i++ {
-		for j := coords.Y0; j < coords.Y1; j++ {
+	for i := coords.X0; i <= coords.X1; i++ {
+		for j := coords.Y0; j <= coords.Y1; j++ {
 			// Values are ordered by the sender
 			resMat[i][j] = subprobResMat[i][j]
 		}
@@ -179,21 +177,18 @@ func (worker worker) maxReduce(maxDiff float64) float64 {
 		// Reduction centralized in the 'root' worker
 		// Collect and reduce maxDiff values from all workers
 		maxMaxDiff = maxDiff
-		for i := 0; i < worker.globalParams.nWorkers - 1; i++ {
-			otherMaxDiff := <- worker.maxDiffRes[i]
-			if otherMaxDiff > maxMaxDiff {
-				maxMaxDiff = otherMaxDiff
-			}
+		for i := 1; i < worker.globalParams.nWorkers; i++ {
+			maxMaxDiff = MaxMaxDiff(maxMaxDiff, <- worker.maxDiffRes[i])
 		}
 		
 		// Fan out the result to the rest of the workers
-		for i := 0; i < worker.globalParams.nWorkers - 1; i++ {
+		for i := 1; i < worker.globalParams.nWorkers; i++ {
 			worker.maxDiffRes[i] <- maxMaxDiff
 		}
 	} else {
 		// 'Non-root' workers send their results
 		worker.maxDiffRes[worker.id] <- maxDiff
-		// Wait for result
+		// Wait for result calculated by 'Root' worker
 		maxMaxDiff = <- worker.maxDiffRes[worker.id]
 	}
 
@@ -202,8 +197,7 @@ func (worker worker) maxReduce(maxDiff float64) float64 {
 
 // Sends the worker outer values to adjacent workers
 func (worker worker) sendOuterCells(mat matrix.Matrix) {
-	coords := worker.matDef.Coords
-	matLen := worker.matDef.Size
+	coords, matLen := worker.matDef.Coords, worker.matDef.Size
 
 	// Since subproblem coordinates never change, this solution
 	// isn't the best one in terms of performance, as these
@@ -213,7 +207,7 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 			worker.adjacent.toTop <- mat[0][j]
 		}
 	}
-	if coords.Y1 != worker.globalParams.size {
+	if coords.Y1 != worker.globalParams.size - 1 {
 		for j := 0; j < matLen; j++ {
 			worker.adjacent.toBottom <- mat[matLen-1][j]
 		}
@@ -223,7 +217,7 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 			worker.adjacent.toRight <- mat[i][0]
 		}
 	}
-	if coords.X1 != worker.globalParams.size {
+	if coords.X1 != worker.globalParams.size - 1 {
 		for i := 0; i < matLen; i++ {
 			worker.adjacent.toLeft <- mat[i][matLen-1]
 		}
@@ -232,15 +226,14 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 
 // Gets the adjacent workers outer values
 func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
-	coords := worker.matDef.Coords
-	matLen := worker.matDef.Size
+	coords, matLen := worker.matDef.Coords, worker.matDef.Size
 
 	if coords.Y0 != 0 {
 		for j := 0; j < matLen; j++ {
 			mat[0][j] = <- worker.adjacent.fromTop
 		}
 	}
-	if coords.Y1 != worker.globalParams.size {
+	if coords.Y1 != worker.globalParams.size - 1 {
 		for j := 0; j < matLen; j++ {
 			mat[matLen-1][j] = <- worker.adjacent.fromBottom
 		}
@@ -250,7 +243,7 @@ func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
 			mat[i][0] = <- worker.adjacent.fromRight
 		}
 	}
-	if coords.X1 != worker.globalParams.size {
+	if coords.X1 != worker.globalParams.size - 1 {
 		for i := 0; i < matLen; i++ {
 			mat[i][matLen-1] = <- worker.adjacent.fromLeft
 		}
@@ -265,16 +258,16 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix, prevMaxDiff float
 	for k := 1; k < matLen-1; k++ {
 		// Top outer cells
 		dst[1][k] = 0.2*(src[1][k] + src[1][k-1] + src[1][k+1] + src[0][k] + src[2][k])
-		maxDiff = MaxDiff(maxDiff, dst[1][k], src[1][k])
+		maxDiff = MaxMaxDiff(maxDiff, math.Abs(dst[1][k] - src[1][k]))
 		// Bottom outer cells
 		dst[matLen-2][k] = 0.2*(src[matLen-2][k] + src[matLen-2][k-1] + src[matLen-2][k+1] + src[matLen-3][k] + src[matLen-1][k])
-		maxDiff = MaxDiff(maxDiff, dst[matLen-2][k], src[matLen-2][k])
+		maxDiff = MaxMaxDiff(maxDiff, math.Abs(dst[matLen-2][k] - src[matLen-2][k]))
 		// Left outer cells
 		dst[k][1] = 0.2*(src[k][1] + src[k-1][1] + src[k+1][1] + src[k][0] + src[k][2])
-		maxDiff = MaxDiff(maxDiff, dst[k][1], src[k][1])
+		maxDiff = MaxMaxDiff(maxDiff, math.Abs(dst[k][1] - src[k][1]))
 		// Right outer cells
 		dst[k][matLen-2] = 0.2*(src[k][matLen-2] + src[k-1][matLen-2] + src[k+2][matLen-2] + src[k][matLen-3] + src[k][matLen-1])
-		maxDiff = MaxDiff(maxDiff, dst[k][matLen-2], src[k][matLen-2])
+		maxDiff = MaxMaxDiff(maxDiff, math.Abs(dst[k][matLen-2] - src[k][matLen-2]))
 	}
 
 	return maxDiff
@@ -310,7 +303,7 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 			for j := 1; j < matLen-1; j++ {
 				// Compute new value with 3x3 filter with no corners
 				matB[i][j] = 0.2*(matA[i][j] + matA[i-1][j] + matA[i+1][j] + matA[i][j-1] + matA[i][j+1])
-				maxDiff = MaxDiff(maxDiff, matA[i][j], matB[i][j])
+				maxDiff = MaxMaxDiff(maxDiff, math.Abs(matA[i][j] - matB[i][j]))
 			}
 		}
 

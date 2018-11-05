@@ -1,6 +1,7 @@
 package jacobi
 
 import (
+	"math"
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 )
 
@@ -22,7 +23,7 @@ func RunJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) 
 			for j := 1; j < matrixIters; j++ {
 				// Compute new value with 3x3 filter with no corners
 				matB[i][j] = 0.2*(matA[i][j] + matA[i-1][j] + matA[i+1][j] + matA[i][j-1] + matA[i][j+1])
-				maxDiff = MaxDiff(maxDiff, matA[i][j], matB[i][j])
+				maxDiff = MaxMaxDiff(maxDiff, math.Abs(matA[i][j] - matB[i][j]))
 			}
 		}
 

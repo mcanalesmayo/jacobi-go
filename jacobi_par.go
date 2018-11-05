@@ -327,7 +327,7 @@ func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float6
 	workerMatLen, adjacentChns := nDim/nThreadsSqrt, newAdjacentChns(nThreads, nDim, subprobSize)
 
 	var wg sync.WaitGroup
-	wg.Add(nThreads)
+	wg.Add(nThreads-1)
 	for id := 0; id < nThreads; id++ {
 		x0, y0 := (id/nThreadsSqrt)*workerMatLen, (id%nThreadsSqrt)*workerMatLen
 		x1, y1 := x0 + workerMatLen - 1, y0 + workerMatLen - 1

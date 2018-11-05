@@ -33,7 +33,7 @@ func newAdjacentChns(nThreads, nDim, subprobSize int) []adjacentChns {
 	res, nThreadsSqrt := make([]adjacentChns, nThreads), int(math.Sqrt(float64(nThreads)))
 
 	for id := 0; id < nThreads; id++ {
-		rowN, columnN := id % nThreadsSqrt, int(id / nThreadsSqrt)
+		rowN, columnN := int(id / nThreadsSqrt), id % nThreadsSqrt
 
 		if rowN == 0 {
 			if columnN == 0 {

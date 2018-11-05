@@ -205,23 +205,23 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 	rowN, columnN := int(worker.id / nThreadsSqrt), worker.id % nThreadsSqrt
 
 	if rowN != 0 {
-		for j := 1; j < matLen-1; j++ {
+		for j := 1; j < matLen; j++ {
 			worker.adjacent.toTop <- mat[1][j]
 		}
 	}
 	if rowN != nThreadsSqrt-1 {
-		for j := 1; j < matLen-1; j++ {
-			worker.adjacent.toBottom <- mat[matLen-2][j]
+		for j := 1; j < matLen; j++ {
+			worker.adjacent.toBottom <- mat[matLen-1][j]
 		}
 	}
 	if columnN != 0 {
-		for i := 1; i < matLen-1; i++ {
-			worker.adjacent.toRight <- mat[i][1]
+		for i := 1; i < matLen; i++ {
+			worker.adjacent.toRight <- mat[i][matLen-1]
 		}
 	}
 	if columnN != nThreadsSqrt-1 {
-		for i := 1; i < matLen-1; i++ {
-			worker.adjacent.toLeft <- mat[i][matLen-2]
+		for i := 1; i < matLen; i++ {
+			worker.adjacent.toLeft <- mat[i][1]
 		}
 	}
 }
@@ -232,23 +232,23 @@ func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
 	rowN, columnN := int(worker.id / nThreadsSqrt), worker.id % nThreadsSqrt
 
 	if rowN != 0 {
-		for j := 1; j < matLen-1; j++ {
-			mat[1][j] = <- worker.adjacent.fromTop
+		for j := 1; j < matLen; j++ {
+			mat[0][j] = <- worker.adjacent.fromTop
 		}
 	}
 	if rowN != nThreadsSqrt-1 {
-		for j := 1; j < matLen-1; j++ {
-			mat[matLen-2][j] = <- worker.adjacent.fromBottom
+		for j := 1; j < matLen; j++ {
+			mat[matLen][j] = <- worker.adjacent.fromBottom
 		}
 	}
 	if columnN != 0 {
-		for i := 1; i < matLen-1; i++ {
-			mat[i][1] = <- worker.adjacent.fromRight
+		for i := 1; i < matLen; i++ {
+			mat[i][matLen] = <- worker.adjacent.fromRight
 		}
 	}
 	if columnN != nThreadsSqrt-1 {
-		for i := 1; i < matLen-1; i++ {
-			mat[i][matLen-2] = <- worker.adjacent.fromLeft
+		for i := 1; i < matLen; i++ {
+			mat[i][0] = <- worker.adjacent.fromLeft
 		}
 	}
 }

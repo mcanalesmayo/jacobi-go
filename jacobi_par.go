@@ -197,27 +197,29 @@ func (worker worker) maxReduce(maxDiff float64) float64 {
 
 // Sends the worker outer values to adjacent workers
 func (worker worker) sendOuterCells(mat matrix.Matrix) {
-	coords, matLen := worker.matDef.Coords, worker.matDef.Size
+	matLen, nThreadsSqrt := worker.matDef.Size, int(math.Sqrt(float64(worker.globalParams.nWorkers)))
 
 	// Since subproblem coordinates never change, this solution
 	// isn't the best one in terms of performance, as these
 	// checks are done for every jacobi iteration
-	if coords.Y0 != 0 {
+	rowN, columnN := int(worker.id / nThreadsSqrt), worker.id % nThreadsSqrt
+
+	if rowN != 0 {
 		for j := 1; j < matLen-1; j++ {
 			worker.adjacent.toTop <- mat[1][j]
 		}
 	}
-	if coords.Y1 != worker.globalParams.size - 1 {
+	if rowN != nThreadsSqrt-1 {
 		for j := 1; j < matLen-1; j++ {
 			worker.adjacent.toBottom <- mat[matLen-2][j]
 		}
 	}
-	if coords.X0 != 0 {
+	if columnN != 0 {
 		for i := 1; i < matLen-1; i++ {
 			worker.adjacent.toRight <- mat[i][1]
 		}
 	}
-	if coords.X1 != worker.globalParams.size - 1 {
+	if columnN != nThreadsSqrt-1 {
 		for i := 1; i < matLen-1; i++ {
 			worker.adjacent.toLeft <- mat[i][matLen-2]
 		}
@@ -226,24 +228,25 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 
 // Gets the adjacent workers outer values
 func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
-	coords, matLen := worker.matDef.Coords, worker.matDef.Size
+	matLen, nThreadsSqrt := worker.matDef.Size, int(math.Sqrt(float64(worker.globalParams.nWorkers)))
+	rowN, columnN := int(worker.id / nThreadsSqrt), worker.id % nThreadsSqrt
 
-	if coords.Y0 != 0 {
+	if rowN != 0 {
 		for j := 1; j < matLen-1; j++ {
 			mat[1][j] = <- worker.adjacent.fromTop
 		}
 	}
-	if coords.Y1 != worker.globalParams.size - 1 {
+	if rowN != nThreadsSqrt-1 {
 		for j := 1; j < matLen-1; j++ {
 			mat[matLen-2][j] = <- worker.adjacent.fromBottom
 		}
 	}
-	if coords.X0 != 0 {
+	if columnN != 0 {
 		for i := 1; i < matLen-1; i++ {
 			mat[i][1] = <- worker.adjacent.fromRight
 		}
 	}
-	if coords.X1 != worker.globalParams.size - 1 {
+	if columnN != nThreadsSqrt-1 {
 		for i := 1; i < matLen-1; i++ {
 			mat[i][matLen-2] = <- worker.adjacent.fromLeft
 		}

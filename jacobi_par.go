@@ -29,7 +29,7 @@ type worker struct {
 }
 
 // Creates the corresponding adjacentChns for each thread
-func newAdjacentChns(nThreads, nDim, subprobSize int) []adjacentChns {
+func newAdjacentChns(nThreads, subprobSize int) []adjacentChns {
 	res, nThreadsSqrt := make([]adjacentChns, nThreads), int(math.Sqrt(float64(nThreads)))
 
 	for id := 0; id < nThreads; id++ {
@@ -324,7 +324,7 @@ func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float6
 		maxDiffResChns[i] = make(chan float64, 1)
 	}
 	subprobSize, nThreadsSqrt := int(math.Sqrt(float64((nDim*nDim)/nThreads))), int(math.Sqrt(float64(nThreads)))
-	workerMatLen, adjacentChns := nDim/nThreadsSqrt, newAdjacentChns(nThreads, nDim, subprobSize)
+	workerMatLen, adjacentChns := nDim/nThreadsSqrt, newAdjacentChns(nThreads, subprobSize)
 
 	var wg sync.WaitGroup
 	wg.Add(nThreads)

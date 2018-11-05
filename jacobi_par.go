@@ -281,11 +281,11 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	defer wg.Done()
 
 	var matA, matB matrix.Matrix
-	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size+2
+	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size
 	// Adjacent cells are needed to compute outer cells
 	cloneMatDef := matrix.MatrixDef{
 		matrix.Coords{matDef.Coords.X0, matDef.Coords.Y0, matDef.Coords.X1+1, matDef.Coords.Y1+1},
-		matLen,
+		matLen+2,
 	}
 
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners

@@ -158,10 +158,12 @@ func newAdjacentChns(nThreads, subprobSize int) []adjacentChns {
 // Merges the worker subproblem resulting matrix into the global resulting matrix
 func (worker worker) mergeSubproblem(resMat, subprobResMat matrix.Matrix) {
 	coords := worker.matDef.Coords
-	for i := coords.X0; i <= coords.X1; i++ {
-		for j := coords.Y0; j <= coords.Y1; j++ {
+	x0, y0, x1, y1 := coords.X0, coords.Y0, coords.X1, coords.Y1
+
+	for i := x0; i <= x1; i++ {
+		for j := y0; j <= y1; j++ {
 			// Values are ordered by the sender
-			resMat[i+1][j+1] = subprobResMat[i+1][j+1]
+			resMat[i+1][j+1] = subprobResMat[i-x0+1][j-y0+1]
 		}
 	}
 }

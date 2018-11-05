@@ -7,7 +7,7 @@ import (
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 )
 
-func TestRunJacobi(t *testing.T) {
+func TestRunJacobiSeq(t *testing.T) {
 	initialValue, nDim, maxIters, tolerance := 0.5, 16, 1000, 1.0e-4
 
 	expectedMat := matrix.Matrix{

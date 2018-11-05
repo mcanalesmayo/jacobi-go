@@ -161,7 +161,7 @@ func (worker worker) mergeSubproblem(resMat, subprobResMat matrix.Matrix) {
 	for i := coords.X0; i <= coords.X1; i++ {
 		for j := coords.Y0; j <= coords.Y1; j++ {
 			// Values are ordered by the sender
-			resMat[i][j] = subprobResMat[i][j]
+			resMat[i+1][j+1] = subprobResMat[i+1][j+1]
 		}
 	}
 }
@@ -203,23 +203,23 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 	// isn't the best one in terms of performance, as these
 	// checks are done for every jacobi iteration
 	if coords.Y0 != 0 {
-		for j := 0; j < matLen; j++ {
-			worker.adjacent.toTop <- mat[0][j]
+		for j := 1; j < matLen-1; j++ {
+			worker.adjacent.toTop <- mat[1][j]
 		}
 	}
 	if coords.Y1 != worker.globalParams.size - 1 {
-		for j := 0; j < matLen; j++ {
-			worker.adjacent.toBottom <- mat[matLen-1][j]
+		for j := 1; j < matLen-1; j++ {
+			worker.adjacent.toBottom <- mat[matLen-2][j]
 		}
 	}
 	if coords.X0 != 0 {
-		for i := 0; i < matLen; i++ {
-			worker.adjacent.toRight <- mat[i][0]
+		for i := 1; i < matLen-1; i++ {
+			worker.adjacent.toRight <- mat[i][1]
 		}
 	}
 	if coords.X1 != worker.globalParams.size - 1 {
-		for i := 0; i < matLen; i++ {
-			worker.adjacent.toLeft <- mat[i][matLen-1]
+		for i := 1; i < matLen-1; i++ {
+			worker.adjacent.toLeft <- mat[i][matLen-2]
 		}
 	}
 }
@@ -229,23 +229,23 @@ func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
 	coords, matLen := worker.matDef.Coords, worker.matDef.Size
 
 	if coords.Y0 != 0 {
-		for j := 0; j < matLen; j++ {
-			mat[0][j] = <- worker.adjacent.fromTop
+		for j := 1; j < matLen-1; j++ {
+			mat[1][j] = <- worker.adjacent.fromTop
 		}
 	}
 	if coords.Y1 != worker.globalParams.size - 1 {
-		for j := 0; j < matLen; j++ {
-			mat[matLen-1][j] = <- worker.adjacent.fromBottom
+		for j := 1; j < matLen-1; j++ {
+			mat[matLen-2][j] = <- worker.adjacent.fromBottom
 		}
 	}
 	if coords.X0 != 0 {
-		for i := 0; i < matLen; i++ {
-			mat[i][0] = <- worker.adjacent.fromRight
+		for i := 1; i < matLen-1; i++ {
+			mat[i][1] = <- worker.adjacent.fromRight
 		}
 	}
 	if coords.X1 != worker.globalParams.size - 1 {
-		for i := 0; i < matLen; i++ {
-			mat[i][matLen-1] = <- worker.adjacent.fromLeft
+		for i := 1; i < matLen-1; i++ {
+			mat[i][matLen-2] = <- worker.adjacent.fromLeft
 		}
 	}
 }
@@ -281,17 +281,13 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size+2
 	// Adjacent cells are needed to compute outer cells
 	cloneMatDef := matrix.MatrixDef{
-		matrix.Coords{matDef.Coords.X0-1, matDef.Coords.Y0-1, matDef.Coords.X1+1, matDef.Coords.Y1+1},
+		matrix.Coords{matDef.Coords.X0, matDef.Coords.Y0, matDef.Coords.X1+1, matDef.Coords.Y1+1},
 		matLen,
 	}
 
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
-	matA = resMat.Clone(cloneMatDef)
-	matB = matA.Clone(matrix.MatrixDef{
-		matrix.Coords{0, 0, matLen-1, matLen-1},
-		matLen,
-	})
+	matA, matB = resMat.Clone(cloneMatDef), resMat.Clone(cloneMatDef)
 
 	for nIters := 0; maxDiff > tolerance && nIters < maxIters; nIters++ {
 		maxDiff = 0.0
@@ -299,8 +295,8 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 		worker.sendOuterCells(matA)
 
 		// Outer cells are a special case which will be computed later on
-		for i := 1; i < matLen-1; i++ {
-			for j := 1; j < matLen-1; j++ {
+		for i := 2; i < matLen-1; i++ {
+			for j := 2; j < matLen-1; j++ {
 				// Compute new value with 3x3 filter with no corners
 				matB[i][j] = 0.2*(matA[i][j] + matA[i-1][j] + matA[i+1][j] + matA[i][j-1] + matA[i][j+1])
 				maxDiff = MaxMaxDiff(maxDiff, math.Abs(matA[i][j] - matB[i][j]))
@@ -322,11 +318,12 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 // Parallel version of the jacobi method using Go routines
 func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
 	// TODO: Check preconditions
-	resMat, subprobSize, nThreadsSqrt, maxDiffResChns := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), int(math.Sqrt(float64((nDim*nDim)/nThreads))), int(math.Sqrt(float64(nThreads))), make([]chan float64, nThreads)
+	resMat, maxDiffResChns := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads)
 	for i := 0; i < nThreads; i++ {
 		// These channels can also be unbuffered, as there's currently no computation between sending and receiving
 		maxDiffResChns[i] = make(chan float64, 1)
 	}
+	subprobSize, nThreadsSqrt := int(math.Sqrt(float64((nDim*nDim)/nThreads))), int(math.Sqrt(float64(nThreads)))
 	workerMatLen, adjacentChns := nDim/nThreadsSqrt, newAdjacentChns(nThreads, nDim, subprobSize)
 
 	var wg sync.WaitGroup
@@ -334,7 +331,6 @@ func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float6
 	for id := 0; id < nThreads; id++ {
 		x0, y0 := (id/nThreadsSqrt)*workerMatLen, (id%nThreadsSqrt)*workerMatLen
 		x1, y1 := x0 + workerMatLen - 1, y0 + workerMatLen - 1
-		coords := matrix.Coords{x0, y0, x1, y1}
 
 		go worker{
 			id: id,
@@ -343,7 +339,7 @@ func RunJacobiPar(initialValue float64, nDim int, maxIters int, tolerance float6
 				size: nDim,
 			},
 			matDef: matrix.MatrixDef{
-				Coords: coords,
+				Coords: matrix.Coords{x0, y0, x1, y1},
 				Size: subprobSize,
 			},
 			adjacent: adjacentChns[id],

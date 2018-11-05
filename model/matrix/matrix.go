@@ -63,11 +63,12 @@ func (matA Matrix) CompareTo(matB Matrix) bool {
 // Clones the portion of the matrix specified by the matDef argument
 func (mat Matrix) Clone(matDef MatrixDef) Matrix {
 	x0, y0, x1, y1, length := matDef.Coords.X0, matDef.Coords.Y0, matDef.Coords.X1, matDef.Coords.Y1, matDef.Size
-	clone := make(Matrix, length)
 
+	clone := make(Matrix, length)
 	for i := x0; i <= x1; i++ {
-		clone[i] = make([]float64, length)
+		clone[i-x0] = make([]float64, length)
 		for j := y0; j <= y1; j++ {
+			//fmt.Printf("(%d,%d)-(%d,%d); clone[%d][%d] = mat[%d][%d]\n", x0, y0, x1, y1, i-x0, j-y0, i, j)
 			clone[i-x0][j-y0] = mat[i][j]
 		}
 	}

@@ -216,12 +216,12 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 	}
 	if columnN != 0 {
 		for i := 1; i < matLen; i++ {
-			worker.adjacent.toRight <- mat[i][matLen-1]
+			worker.adjacent.toLeft <- mat[i][1]
 		}
 	}
 	if columnN != nThreadsSqrt-1 {
 		for i := 1; i < matLen; i++ {
-			worker.adjacent.toLeft <- mat[i][1]
+			worker.adjacent.toRight <- mat[i][matLen-1]
 		}
 	}
 }
@@ -243,12 +243,12 @@ func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
 	}
 	if columnN != 0 {
 		for i := 1; i < matLen; i++ {
-			mat[i][matLen] = <- worker.adjacent.fromRight
+			mat[i][0] = <- worker.adjacent.fromLeft
 		}
 	}
 	if columnN != nThreadsSqrt-1 {
 		for i := 1; i < matLen; i++ {
-			mat[i][0] = <- worker.adjacent.fromLeft
+			mat[i][matLen] = <- worker.adjacent.fromRight
 		}
 	}
 }

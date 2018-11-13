@@ -2,16 +2,16 @@ package benchmark
 
 import (
 	"fmt"
-	"testing"
 	"github.com/mcanalesmayo/jacobi-go"
+	"testing"
 )
 
 func BenchmarkRunJacobi(b *testing.B) {
 	experiments := []struct {
 		initialValue float64
-		nDim int
-		maxIters int
-		tolerance float64
+		nDim         int
+		maxIters     int
+		tolerance    float64
 	}{
 		{0.5, 16, 1000, 1.0e-4},
 		{0.5, 128, 1000, 1.0e-4},

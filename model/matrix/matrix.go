@@ -6,7 +6,7 @@ import (
 
 const (
 	// Predefined values representing hot and cold state of a cell
-	Hot = 1.0
+	Hot  = 1.0
 	Cold = 0.0
 )
 
@@ -31,7 +31,7 @@ func (rowA Row) CompareTo(rowB Row) bool {
 		return false
 	} else {
 		for i := range rowA {
-			if (rowA[i] != rowB[i]) {
+			if rowA[i] != rowB[i] {
 				return false
 			}
 		}
@@ -51,7 +51,7 @@ func (matA Matrix) CompareTo(matB Matrix) bool {
 		for i := range matA {
 			// Need to assign to vars so that Row methods can be used
 			var rowA, rowB Row = matA[i], matB[i]
-			if (!rowA.CompareTo(rowB)) {
+			if !rowA.CompareTo(rowB) {
 				return false
 			}
 		}
@@ -72,7 +72,7 @@ func (mat Matrix) Clone(matDef MatrixDef) Matrix {
 			clone[i-x0][j-y0] = mat[i][j]
 		}
 	}
-	
+
 	return clone
 }
 

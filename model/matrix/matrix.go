@@ -6,20 +6,23 @@ import (
 
 const (
 	// Hot is the value of a hot state of a cell
-	Hot  = 1.0
+	Hot = 1.0
 	// Cold is the value a cold state of a cell
 	Cold = 0.0
 )
 
 // Matrix represents a 2D array
 type Matrix [][]float64
+
 // Row represents a 1D array belonging to a Matrix
 type Row []float64
+
 // Coords defines a 2D square
 type Coords struct {
 	// Top-left corner and bottom-right corner
 	X0, Y0, X1, Y1 int
 }
+
 // MatrixDef defines a submatrix inside a Matrix
 type MatrixDef struct {
 	Coords Coords
@@ -29,14 +32,14 @@ type MatrixDef struct {
 
 // CompareTo returns true if both rows contain equal values or both are nil,
 // otherwise returns false
-func (rowA Row) CompareTo(rowB Row) bool {
-	if rowA == nil && rowB == nil {
+func (row Row) CompareTo(anotherRow Row) bool {
+	if row == nil && anotherRow == nil {
 		return true
-	} else if len(rowA) != len(rowB) {
+	} else if len(row) != len(anotherRow) {
 		return false
 	} else {
-		for i := range rowA {
-			if rowA[i] != rowB[i] {
+		for i := range row {
+			if row[i] != anotherRow[i] {
 				return false
 			}
 		}
@@ -47,15 +50,15 @@ func (rowA Row) CompareTo(rowB Row) bool {
 
 // CompareTo returns true if both matrices contain equal cells or both are nil,
 // otherwise returns false
-func (matA Matrix) CompareTo(matB Matrix) bool {
-	if matA == nil && matB == nil {
+func (mat Matrix) CompareTo(anotherMat Matrix) bool {
+	if mat == nil && anotherMat == nil {
 		return true
-	} else if len(matA) != len(matB) {
+	} else if len(mat) != len(anotherMat) {
 		return false
 	} else {
-		for i := range matA {
+		for i := range mat {
 			// Need to assign to vars so that Row methods can be used
-			var rowA, rowB Row = matA[i], matB[i]
+			var rowA, rowB Row = mat[i], anotherMat[i]
 			if !rowA.CompareTo(rowB) {
 				return false
 			}

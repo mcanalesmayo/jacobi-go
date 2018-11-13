@@ -5,25 +5,30 @@ import (
 )
 
 const (
-	// Predefined values representing hot and cold state of a cell
+	// Hot is the value of a hot state of a cell
 	Hot  = 1.0
+	// Cold is the value a cold state of a cell
 	Cold = 0.0
 )
 
+// Matrix represents a 2D array
 type Matrix [][]float64
+// Row represents a 1D array belonging to a Matrix
 type Row []float64
+// Coords defines a 2D square
 type Coords struct {
 	// Top-left corner and bottom-right corner
 	X0, Y0, X1, Y1 int
 }
+// MatrixDef defines a submatrix inside a Matrix
 type MatrixDef struct {
 	Coords Coords
 	// Precomputed matrix size: len(matrix)
 	Size int
 }
 
-// Returns true if both rows contain equal values or both are nil
-// Returns false otherwise
+// CompareTo returns true if both rows contain equal values or both are nil,
+// otherwise returns false
 func (rowA Row) CompareTo(rowB Row) bool {
 	if rowA == nil && rowB == nil {
 		return true
@@ -40,8 +45,8 @@ func (rowA Row) CompareTo(rowB Row) bool {
 	}
 }
 
-// Returns true if both matrices contain equal cells or both are nil
-// Returns false otherwise
+// CompareTo returns true if both matrices contain equal cells or both are nil,
+// otherwise returns false
 func (matA Matrix) CompareTo(matB Matrix) bool {
 	if matA == nil && matB == nil {
 		return true
@@ -60,7 +65,7 @@ func (matA Matrix) CompareTo(matB Matrix) bool {
 	}
 }
 
-// Clones the portion of the matrix specified by the matDef argument
+// Clone clones the portion of the matrix specified by a MatrixDef
 func (mat Matrix) Clone(matDef MatrixDef) Matrix {
 	x0, y0, x1, y1, length := matDef.Coords.X0, matDef.Coords.Y0, matDef.Coords.X1, matDef.Coords.Y1, matDef.Size
 
@@ -76,7 +81,7 @@ func (mat Matrix) Clone(matDef MatrixDef) Matrix {
 	return clone
 }
 
-// Initializes a new matrix with the specified values
+// NewMatrix creates a new matrix with the specified initializing values
 func NewMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) Matrix {
 	mat := make(Matrix, n, n)
 	// Init inner cells value
@@ -103,7 +108,7 @@ func NewMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBou
 	return mat
 }
 
-// Prints the matrix in a human-readable format
+// Print prints the matrix in a human-readable format
 func (mat Matrix) Print() {
 	for _, row := range mat {
 		for _, el := range row {

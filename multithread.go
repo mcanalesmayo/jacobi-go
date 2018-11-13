@@ -320,7 +320,7 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	worker.mergeSubproblem(resMat, matA)
 }
 
-// RunMultithreadedJacobi runs a multithreaded version of the jacobi method using Go routines
+// RunMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
 func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
 	// TODO: Check preconditions
 	resMat, maxDiffResChns := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads)

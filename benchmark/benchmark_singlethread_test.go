@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func BenchmarkRunJacobi(b *testing.B) {
+func BenchmarkRunSinglethreadedJacobi(b *testing.B) {
 	experiments := []struct {
 		initialValue float64
 		nDim         int

@@ -21,7 +21,7 @@ func BenchmarkRunJacobi(b *testing.B) {
 	for _, params := range experiments {
 		b.Run(fmt.Sprintf("sequential,%.4f,%d,%d,%.4f", params.initialValue, params.nDim, params.maxIters, params.tolerance), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				jacobi.RunJacobi(params.initialValue, params.nDim, params.maxIters, params.tolerance)
+				jacobi.RunSinglethreadedJacobi(params.initialValue, params.nDim, params.maxIters, params.tolerance)
 			}
 		})
 	}

@@ -3,8 +3,12 @@ package jacobi
 import (
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 	"github.com/mcanalesmayo/jacobi-go/utils"
+	"bytes"
+	"fmt"
 	"math"
+	"strconv"
 	"sync"
+	"runtime"
 )
 
 type globalParams struct {
@@ -261,19 +265,19 @@ func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
 func (worker worker) computeOuterCells(dst, src matrix.Matrix, prevMaxDiff float64) float64 {
 	maxDiff, matLen := prevMaxDiff, worker.matDef.Size
 	// TODO: This is probably not the best way to compute the outer cells in terms of performance
-	for k := 1; k < matLen-1; k++ {
+	for k := 1; k <= matLen; k++ {
 		// Top outer cells
 		dst[1][k] = 0.2 * (src[1][k] + src[1][k-1] + src[1][k+1] + src[0][k] + src[2][k])
 		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[1][k]-src[1][k]))
 		// Bottom outer cells
-		dst[matLen-2][k] = 0.2 * (src[matLen-2][k] + src[matLen-2][k-1] + src[matLen-2][k+1] + src[matLen-3][k] + src[matLen-1][k])
-		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[matLen-2][k]-src[matLen-2][k]))
+		dst[matLen][k] = 0.2 * (src[matLen][k] + src[matLen][k-1] + src[matLen][k+1] + src[matLen-1][k] + src[matLen+1][k])
+		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[matLen][k]-src[matLen][k]))
 		// Left outer cells
 		dst[k][1] = 0.2 * (src[k][1] + src[k-1][1] + src[k+1][1] + src[k][0] + src[k][2])
 		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[k][1]-src[k][1]))
 		// Right outer cells
-		dst[k][matLen-2] = 0.2 * (src[k][matLen-2] + src[k-1][matLen-2] + src[k+2][matLen-2] + src[k][matLen-3] + src[k][matLen-1])
-		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[k][matLen-2]-src[k][matLen-2]))
+		dst[k][matLen] = 0.2 * (src[k][matLen] + src[k-1][matLen] + src[k+1][matLen] + src[k][matLen-1] + src[k][matLen+1])
+		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[k][matLen]-src[k][matLen]))
 	}
 
 	return maxDiff
@@ -282,6 +286,8 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix, prevMaxDiff float
 // Runs the jacobi method for the worker subproblem to get its partial result
 func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64, maxIters int, tolerance float64, wg *sync.WaitGroup) {
 	defer wg.Done()
+
+	fmt.Printf("[Worker #%d, Go routine #%d] Init - matDef.Size: %d, From (%d,%d) to (%d,%d)\n", worker.id, goRoutineID(), worker.matDef.Size, worker.matDef.Coords.X0, worker.matDef.Coords.Y0, worker.matDef.Coords.X1, worker.matDef.Coords.Y1)
 
 	var matA, matB matrix.Matrix
 	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size
@@ -298,8 +304,10 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	for nIters := 0; maxDiff > tolerance && nIters < maxIters; nIters++ {
 		maxDiff = 0.0
 
+		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Sending outer cells\n", worker.id, goRoutineID(), nIters)
 		worker.sendOuterCells(matA)
 
+		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Computing inner cells\n", worker.id, goRoutineID(), nIters)
 		// Outer cells are a special case which will be computed later on
 		for i := 2; i < matLen-1; i++ {
 			for j := 2; j < matLen-1; j++ {
@@ -309,15 +317,19 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 			}
 		}
 
+		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Receiving adjacent cells\n", worker.id, goRoutineID(), nIters)
 		worker.recvAdjacentCells(matA)
+		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Computing outer cells\n", worker.id, goRoutineID(), nIters)
 		maxDiff = worker.computeOuterCells(matB, matA, maxDiff)
 		// Actual max diff is maximum of all threads maxDiff
+		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Reducing maxDiff\n", worker.id, goRoutineID(), nIters)
 		maxDiff = worker.maxReduce(maxDiff)
 
 		// Swap matrices
 		matA, matB = matB, matA
 	}
 
+	fmt.Printf("[Worker #%d, Go routine #%d] After loop - Merging subproblem\n", worker.id, goRoutineID())
 	worker.mergeSubproblem(resMat, matA)
 }
 
@@ -356,4 +368,15 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 
 	// TODO: Return number of iterations and maximum diff
 	return resMat
+}
+
+// IMPORTANT: ONLY FOR DEBUG PURPOSES!!
+func goRoutineID() uint64 {
+    b := make([]byte, 64)
+    b = b[:runtime.Stack(b, false)]
+    b = bytes.TrimPrefix(b, []byte("goroutine "))
+    b = b[:bytes.IndexByte(b, ' ')]
+    n, _ := strconv.ParseUint(string(b), 10, 64)
+
+    return n
 }

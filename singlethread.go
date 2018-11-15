@@ -6,7 +6,7 @@ import (
 	"math"
 )
 
-// RunSinglethreadedJacobi runs a single-threaded version of the jacobi method using Go routines
+// RunSinglethreadedJacobi runs a single-threaded version of the jacobi method
 func RunSinglethreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) (matrix.Matrix, int, float64) {
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we an aux matrix to keep the grid values in every iteration after computing new values

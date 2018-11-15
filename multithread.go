@@ -2,6 +2,7 @@ package jacobi
 
 import (
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
+	"github.com/mcanalesmayo/jacobi-go/utils"
 	"math"
 	"sync"
 )
@@ -180,7 +181,7 @@ func (worker worker) maxReduce(maxDiff float64) float64 {
 		// Collect and reduce maxDiff values from all workers
 		maxMaxDiff = maxDiff
 		for i := 1; i < worker.globalParams.nWorkers; i++ {
-			maxMaxDiff = MaxMaxDiff(maxMaxDiff, <-worker.maxDiffRes[i])
+			maxMaxDiff = utils.MaxMaxDiff(maxMaxDiff, <-worker.maxDiffRes[i])
 		}
 
 		// Fan out the result to the rest of the workers
@@ -263,16 +264,16 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix, prevMaxDiff float
 	for k := 1; k < matLen-1; k++ {
 		// Top outer cells
 		dst[1][k] = 0.2 * (src[1][k] + src[1][k-1] + src[1][k+1] + src[0][k] + src[2][k])
-		maxDiff = MaxMaxDiff(maxDiff, math.Abs(dst[1][k]-src[1][k]))
+		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[1][k]-src[1][k]))
 		// Bottom outer cells
 		dst[matLen-2][k] = 0.2 * (src[matLen-2][k] + src[matLen-2][k-1] + src[matLen-2][k+1] + src[matLen-3][k] + src[matLen-1][k])
-		maxDiff = MaxMaxDiff(maxDiff, math.Abs(dst[matLen-2][k]-src[matLen-2][k]))
+		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[matLen-2][k]-src[matLen-2][k]))
 		// Left outer cells
 		dst[k][1] = 0.2 * (src[k][1] + src[k-1][1] + src[k+1][1] + src[k][0] + src[k][2])
-		maxDiff = MaxMaxDiff(maxDiff, math.Abs(dst[k][1]-src[k][1]))
+		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[k][1]-src[k][1]))
 		// Right outer cells
 		dst[k][matLen-2] = 0.2 * (src[k][matLen-2] + src[k-1][matLen-2] + src[k+2][matLen-2] + src[k][matLen-3] + src[k][matLen-1])
-		maxDiff = MaxMaxDiff(maxDiff, math.Abs(dst[k][matLen-2]-src[k][matLen-2]))
+		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[k][matLen-2]-src[k][matLen-2]))
 	}
 
 	return maxDiff
@@ -304,7 +305,7 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 			for j := 2; j < matLen-1; j++ {
 				// Compute new value with 3x3 filter with no corners
 				matB[i][j] = 0.2 * (matA[i][j] + matA[i-1][j] + matA[i+1][j] + matA[i][j-1] + matA[i][j+1])
-				maxDiff = MaxMaxDiff(maxDiff, math.Abs(matA[i][j]-matB[i][j]))
+				maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(matA[i][j]-matB[i][j]))
 			}
 		}
 

@@ -2,6 +2,7 @@ package matrix
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -12,7 +13,7 @@ const (
 )
 
 // Matrix represents a 2D array
-type Matrix [][]float64
+type Matrix []Row
 
 // Row represents a 1D array belonging to a Matrix
 type Row []float64
@@ -110,12 +111,28 @@ func NewMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBou
 	return mat
 }
 
-// Print prints the matrix in a human-readable format
-func (mat Matrix) Print() {
-	for _, row := range mat {
-		for _, el := range row {
-			fmt.Printf("%.4f ", el)
-		}
-		fmt.Println()
+// ToString returns the row in a human-readable format
+func (row Row) ToString() string {
+	var resSb strings.Builder
+	strBuf := make([]string, len(row))
+
+	for k, el := range row {
+		strBuf[k] = fmt.Sprintf("%.4f", el)
 	}
+	resSb.WriteString(strings.Join(strBuf, " "))
+
+	return resSb.String()
+}
+
+// ToString returns the matrix in a human-readable format
+func (mat Matrix) ToString() string {
+	var resSb strings.Builder
+	strBuf := make([]string, len(mat))
+
+	for k, row := range mat {
+		strBuf[k] = row.ToString()
+	}
+	resSb.WriteString(strings.Join(strBuf, "\n"))
+
+	return resSb.String()
 }

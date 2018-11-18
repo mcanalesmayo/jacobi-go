@@ -15,27 +15,29 @@ type globalParams struct {
 	nWorkers, size int
 }
 
-type adjacentChns struct {
-	// For sharing values with threads working on adjacent submatrices
-	toTop, toBottom, toRight, toLeft         chan float64
-	fromTop, fromBottom, fromRight, fromLeft chan float64
+type adjacents struct {
+	// For sharing values among adjacent workers
+	toTopWorker, toBottomWorker, toRightWorker, toLeftWorker         chan float64
+	fromTopWorker, fromBottomWorker, fromRightWorker, fromLeftWorker chan float64
+	topValues, bottomValues, rightValues, leftValues []float64
 }
 
 type worker struct {
-	id int
+	// For identifying the worker
+	id, rowNumber, columnNumber int
 	// Global problem parameters
 	globalParams globalParams
 	// Subproblem matrix
 	matDef matrix.MatrixDef
 	// For communicating with adjacent workers
-	adjacent adjacentChns
+	adjacents adjacents
 	// For reducing maxDiff
 	maxDiffRes []chan float64
 }
 
-// Creates the corresponding adjacentChns for each thread
-func newAdjacentChns(nThreads, subprobSize int) []adjacentChns {
-	res, nThreadsSqrt := make([]adjacentChns, nThreads), int(math.Sqrt(float64(nThreads)))
+// Creates the corresponding adjacents for each thread
+func newAdjacents(nThreads, subprobSize int) []adjacents {
+	res, nThreadsSqrt := make([]adjacents, nThreads), int(math.Sqrt(float64(nThreads)))
 
 	for id := 0; id < nThreads; id++ {
 		rowN, columnN := int(id/nThreadsSqrt), id%nThreadsSqrt
@@ -43,118 +45,123 @@ func newAdjacentChns(nThreads, subprobSize int) []adjacentChns {
 		if rowN == 0 {
 			if columnN == 0 {
 				// Worker for top-left corner matrix
-				res[id] = adjacentChns{
-					toTop:      nil,
-					fromTop:    nil,
-					toBottom:   make(chan float64, subprobSize),
-					fromBottom: make(chan float64, subprobSize),
-					toRight:    make(chan float64, subprobSize),
-					fromRight:  make(chan float64, subprobSize),
-					toLeft:     nil,
-					fromLeft:   nil,
+				res[id] = adjacents{
+					toTopWorker:      nil,
+					fromTopWorker:    nil,
+					toBottomWorker:   make(chan float64, subprobSize),
+					fromBottomWorker: make(chan float64, subprobSize),
+					toRightWorker:    make(chan float64, subprobSize),
+					fromRightWorker:  make(chan float64, subprobSize),
+					toLeftWorker:     nil,
+					fromLeftWorker:   nil,
 				}
 			} else if columnN == nThreadsSqrt-1 {
 				// Worker for top-right corner matrix
-				res[id] = adjacentChns{
-					toTop:      nil,
-					fromTop:    nil,
-					toBottom:   make(chan float64, subprobSize),
-					fromBottom: make(chan float64, subprobSize),
-					toRight:    nil,
-					fromRight:  nil,
-					toLeft:     res[id-1].fromRight,
-					fromLeft:   res[id-1].toRight,
+				res[id] = adjacents{
+					toTopWorker:      nil,
+					fromTopWorker:    nil,
+					toBottomWorker:   make(chan float64, subprobSize),
+					fromBottomWorker: make(chan float64, subprobSize),
+					toRightWorker:    nil,
+					fromRightWorker:  nil,
+					toLeftWorker:     res[id-1].fromRightWorker,
+					fromLeftWorker:   res[id-1].toRightWorker,
 				}
 			} else {
 				// Worker for top matrix
-				res[id] = adjacentChns{
-					toTop:      nil,
-					fromTop:    nil,
-					toBottom:   make(chan float64, subprobSize),
-					fromBottom: make(chan float64, subprobSize),
-					toRight:    make(chan float64, subprobSize),
-					fromRight:  make(chan float64, subprobSize),
-					toLeft:     res[id-1].fromRight,
-					fromLeft:   res[id-1].toRight,
+				res[id] = adjacents{
+					toTopWorker:      nil,
+					fromTopWorker:    nil,
+					toBottomWorker:   make(chan float64, subprobSize),
+					fromBottomWorker: make(chan float64, subprobSize),
+					toRightWorker:    make(chan float64, subprobSize),
+					fromRightWorker:  make(chan float64, subprobSize),
+					toLeftWorker:     res[id-1].fromRightWorker,
+					fromLeftWorker:   res[id-1].toRightWorker,
 				}
 			}
 		} else if rowN == nThreadsSqrt-1 {
 			if columnN == 0 {
 				// Worker for bottom-left corner matrix
-				res[id] = adjacentChns{
-					toTop:      res[id-nThreadsSqrt].fromBottom,
-					fromTop:    res[id-nThreadsSqrt].toBottom,
-					toBottom:   nil,
-					fromBottom: nil,
-					toRight:    make(chan float64, subprobSize),
-					fromRight:  make(chan float64, subprobSize),
-					toLeft:     nil,
-					fromLeft:   nil,
+				res[id] = adjacents{
+					toTopWorker:      res[id-nThreadsSqrt].fromBottomWorker,
+					fromTopWorker:    res[id-nThreadsSqrt].toBottomWorker,
+					toBottomWorker:   nil,
+					fromBottomWorker: nil,
+					toRightWorker:    make(chan float64, subprobSize),
+					fromRightWorker:  make(chan float64, subprobSize),
+					toLeftWorker:     nil,
+					fromLeftWorker:   nil,
 				}
 			} else if columnN == nThreadsSqrt-1 {
 				// Worker for bottom-right corner matrix
-				res[id] = adjacentChns{
-					toTop:      res[id-nThreadsSqrt].fromBottom,
-					fromTop:    res[id-nThreadsSqrt].toBottom,
-					toBottom:   nil,
-					fromBottom: nil,
-					toRight:    nil,
-					fromRight:  nil,
-					toLeft:     res[id-1].fromRight,
-					fromLeft:   res[id-1].toRight,
+				res[id] = adjacents{
+					toTopWorker:      res[id-nThreadsSqrt].fromBottomWorker,
+					fromTopWorker:    res[id-nThreadsSqrt].toBottomWorker,
+					toBottomWorker:   nil,
+					fromBottomWorker: nil,
+					toRightWorker:    nil,
+					fromRightWorker:  nil,
+					toLeftWorker:     res[id-1].fromRightWorker,
+					fromLeftWorker:   res[id-1].toRightWorker,
 				}
 			} else {
 				// Worker for bottom matrix
-				res[id] = adjacentChns{
-					toTop:      res[id-nThreadsSqrt].fromBottom,
-					fromTop:    res[id-nThreadsSqrt].toBottom,
-					toBottom:   nil,
-					fromBottom: nil,
-					toRight:    make(chan float64, subprobSize),
-					fromRight:  make(chan float64, subprobSize),
-					toLeft:     res[id-1].fromRight,
-					fromLeft:   res[id-1].toRight,
+				res[id] = adjacents{
+					toTopWorker:      res[id-nThreadsSqrt].fromBottomWorker,
+					fromTopWorker:    res[id-nThreadsSqrt].toBottomWorker,
+					toBottomWorker:   nil,
+					fromBottomWorker: nil,
+					toRightWorker:    make(chan float64, subprobSize),
+					fromRightWorker:  make(chan float64, subprobSize),
+					toLeftWorker:     res[id-1].fromRightWorker,
+					fromLeftWorker:   res[id-1].toRightWorker,
 				}
 			}
 		} else {
 			if columnN == 0 {
 				// Worker for a left side matrix
-				res[id] = adjacentChns{
-					toTop:      res[id-nThreadsSqrt].fromBottom,
-					fromTop:    res[id-nThreadsSqrt].toBottom,
-					toBottom:   make(chan float64, subprobSize),
-					fromBottom: make(chan float64, subprobSize),
-					toRight:    make(chan float64, subprobSize),
-					fromRight:  make(chan float64, subprobSize),
-					toLeft:     nil,
-					fromLeft:   nil,
+				res[id] = adjacents{
+					toTopWorker:      res[id-nThreadsSqrt].fromBottomWorker,
+					fromTopWorker:    res[id-nThreadsSqrt].toBottomWorker,
+					toBottomWorker:   make(chan float64, subprobSize),
+					fromBottomWorker: make(chan float64, subprobSize),
+					toRightWorker:    make(chan float64, subprobSize),
+					fromRightWorker:  make(chan float64, subprobSize),
+					toLeftWorker:     nil,
+					fromLeftWorker:   nil,
 				}
 			} else if columnN == nThreadsSqrt-1 {
 				// Worker for a right side matrix
-				res[id] = adjacentChns{
-					toTop:      res[id-nThreadsSqrt].fromBottom,
-					fromTop:    res[id-nThreadsSqrt].toBottom,
-					toBottom:   make(chan float64, subprobSize),
-					fromBottom: make(chan float64, subprobSize),
-					toRight:    nil,
-					fromRight:  nil,
-					toLeft:     res[id-1].fromRight,
-					fromLeft:   res[id-1].toRight,
+				res[id] = adjacents{
+					toTopWorker:      res[id-nThreadsSqrt].fromBottomWorker,
+					fromTopWorker:    res[id-nThreadsSqrt].toBottomWorker,
+					toBottomWorker:   make(chan float64, subprobSize),
+					fromBottomWorker: make(chan float64, subprobSize),
+					toRightWorker:    nil,
+					fromRightWorker:  nil,
+					toLeftWorker:     res[id-1].fromRightWorker,
+					fromLeftWorker:   res[id-1].toRightWorker,
 				}
 			} else {
 				// Worker for any of the rest of the submatrices
-				res[id] = adjacentChns{
-					toTop:      res[id-nThreadsSqrt].fromBottom,
-					fromTop:    res[id-nThreadsSqrt].toBottom,
-					toBottom:   make(chan float64, subprobSize),
-					fromBottom: make(chan float64, subprobSize),
-					toRight:    make(chan float64, subprobSize),
-					fromRight:  make(chan float64, subprobSize),
-					toLeft:     res[id-1].fromRight,
-					fromLeft:   res[id-1].toRight,
+				res[id] = adjacents{
+					toTopWorker:      res[id-nThreadsSqrt].fromBottomWorker,
+					fromTopWorker:    res[id-nThreadsSqrt].toBottomWorker,
+					toBottomWorker:   make(chan float64, subprobSize),
+					fromBottomWorker: make(chan float64, subprobSize),
+					toRightWorker:    make(chan float64, subprobSize),
+					fromRightWorker:  make(chan float64, subprobSize),
+					toLeftWorker:     res[id-1].fromRightWorker,
+					fromLeftWorker:   res[id-1].toRightWorker,
 				}
 			}
 		}
+
+		res[id].topValues    = make([]float64, subprobSize)
+		res[id].bottomValues = make([]float64, subprobSize)
+		res[id].leftValues   = make([]float64, subprobSize)
+		res[id].rightValues  = make([]float64, subprobSize)
 	}
 
 	return res
@@ -173,6 +180,20 @@ func (worker worker) mergeSubproblem(resMat, subprobResMat matrix.Matrix) {
 	}
 }
 
+// Computes the new maxDiff taking into account subproblem matrix as well as other workers matrix (like a max-reduce on the global matrix)
+func (worker worker) computeNewMaxDiff(matB, matA matrix.Matrix) float64 {
+	matLen, maxDiff := worker.matDef.Size, 0.0
+
+	// My subproblem maxDiff
+	for i := 0; i < matLen; i++ {
+		for j := 0; j < matLen; j++ {
+			maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(matB[i][j]-matA[i][j]))
+		}
+	}
+
+	return worker.maxReduce(maxDiff)
+}
+
 // For the sake of simplicity, reduction is centralized on the 'root' worker, which will fan out the resulting value
 // TODO: Look into a better way to do a parallel reduce
 func (worker worker) maxReduce(maxDiff float64) float64 {
@@ -186,17 +207,22 @@ func (worker worker) maxReduce(maxDiff float64) float64 {
 		maxMaxDiff = maxDiff
 		for i := 1; i < worker.globalParams.nWorkers; i++ {
 			maxMaxDiff = utils.MaxMaxDiff(maxMaxDiff, <-worker.maxDiffRes[i])
+			fmt.Printf("[Worker #%d, Go routine #%d] Received maxDiff value from %d and computed new one: %.4f\n", worker.id, goRoutineID(), i, maxMaxDiff)
 		}
 
+		fmt.Printf("[Worker #%d, Go routine #%d] Broadcasting maxDiff value: %d\n", worker.id, goRoutineID(), maxMaxDiff)
 		// Fan out the result to the rest of the workers
 		for i := 1; i < worker.globalParams.nWorkers; i++ {
 			worker.maxDiffRes[i] <- maxMaxDiff
 		}
 	} else {
+		fmt.Printf("[Worker #%d, Go routine #%d] Sending %.4f as my subproblem maxDiff\n", worker.id, goRoutineID(), maxDiff)
 		// 'Non-root' workers send their results
 		worker.maxDiffRes[worker.id] <- maxDiff
+		fmt.Printf("[Worker #%d, Go routine #%d] Receiving the reduced maxDiff\n", worker.id, goRoutineID())
 		// Wait for result calculated by 'Root' worker
 		maxMaxDiff = <-worker.maxDiffRes[worker.id]
+		fmt.Printf("[Worker #%d, Go routine #%d] Got %.4f as reduced maxDiff\n", worker.id, goRoutineID(), maxMaxDiff)
 	}
 
 	return maxMaxDiff
@@ -209,26 +235,24 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 	// Since subproblem coordinates never change, this solution
 	// isn't the best one in terms of performance, as these
 	// checks are done for every jacobi iteration
-	rowN, columnN := int(worker.id/nThreadsSqrt), worker.id%nThreadsSqrt
-
-	if rowN != 0 {
-		for j := 1; j < matLen; j++ {
-			worker.adjacent.toTop <- mat[1][j]
+	if worker.rowNumber != 0 {
+		for j := 0; j < matLen; j++ {
+			worker.adjacents.toTopWorker <- mat[0][j]
 		}
 	}
-	if rowN != nThreadsSqrt-1 {
-		for j := 1; j < matLen; j++ {
-			worker.adjacent.toBottom <- mat[matLen-1][j]
+	if worker.rowNumber != nThreadsSqrt-1 {
+		for j := 0; j < matLen; j++ {
+			worker.adjacents.toBottomWorker <- mat[matLen-1][j]
 		}
 	}
-	if columnN != 0 {
-		for i := 1; i < matLen; i++ {
-			worker.adjacent.toLeft <- mat[i][1]
+	if worker.columnNumber != 0 {
+		for i := 0; i < matLen; i++ {
+			worker.adjacents.toLeftWorker <- mat[i][0]
 		}
 	}
-	if columnN != nThreadsSqrt-1 {
-		for i := 1; i < matLen; i++ {
-			worker.adjacent.toRight <- mat[i][matLen-1]
+	if worker.columnNumber != nThreadsSqrt-1 {
+		for i := 0; i < matLen; i++ {
+			worker.adjacents.toRightWorker <- mat[i][matLen-1]
 		}
 	}
 }
@@ -236,51 +260,81 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 // Gets the adjacent workers outer values
 func (worker worker) recvAdjacentCells(mat matrix.Matrix) {
 	matLen, nThreadsSqrt := worker.matDef.Size, int(math.Sqrt(float64(worker.globalParams.nWorkers)))
-	rowN, columnN := int(worker.id/nThreadsSqrt), worker.id%nThreadsSqrt
 
-	if rowN != 0 {
-		for j := 1; j < matLen; j++ {
-			mat[0][j] = <-worker.adjacent.fromTop
+	if worker.rowNumber != 0 {
+		for j := 0; j < matLen; j++ {
+			worker.adjacents.topValues[j] = <-worker.adjacents.fromTopWorker
 		}
 	}
-	if rowN != nThreadsSqrt-1 {
-		for j := 1; j < matLen; j++ {
-			mat[matLen][j] = <-worker.adjacent.fromBottom
+	if worker.rowNumber != nThreadsSqrt-1 {
+		for j := 0; j < matLen; j++ {
+			worker.adjacents.bottomValues[j] = <-worker.adjacents.fromBottomWorker
 		}
 	}
-	if columnN != 0 {
-		for i := 1; i < matLen; i++ {
-			mat[i][0] = <-worker.adjacent.fromLeft
+	if worker.columnNumber != 0 {
+		for i := 0; i < matLen; i++ {
+			worker.adjacents.leftValues[i] = <-worker.adjacents.fromLeftWorker
 		}
 	}
-	if columnN != nThreadsSqrt-1 {
-		for i := 1; i < matLen; i++ {
-			mat[i][matLen] = <-worker.adjacent.fromRight
+	if worker.columnNumber != nThreadsSqrt-1 {
+		for i := 0; i < matLen; i++ {
+			worker.adjacents.rightValues[i] = <-worker.adjacents.fromRightWorker
 		}
 	}
 }
 
 // Computes the outer cells of this worker submatrix, which are adjacent to other workers submatrices
 // Returns the updated maxDiff value
-func (worker worker) computeOuterCells(dst, src matrix.Matrix, prevMaxDiff float64) float64 {
-	maxDiff, matLen := prevMaxDiff, worker.matDef.Size
-	// TODO: This is probably not the best way to compute the outer cells in terms of performance
-	for k := 1; k <= matLen; k++ {
-		// Top outer cells
-		dst[1][k] = 0.2 * (src[1][k] + src[1][k-1] + src[1][k+1] + src[0][k] + src[2][k])
-		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[1][k]-src[1][k]))
-		// Bottom outer cells
-		dst[matLen][k] = 0.2 * (src[matLen][k] + src[matLen][k-1] + src[matLen][k+1] + src[matLen-1][k] + src[matLen+1][k])
-		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[matLen][k]-src[matLen][k]))
-		// Left outer cells
-		dst[k][1] = 0.2 * (src[k][1] + src[k-1][1] + src[k+1][1] + src[k][0] + src[k][2])
-		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[k][1]-src[k][1]))
-		// Right outer cells
-		dst[k][matLen] = 0.2 * (src[k][matLen] + src[k-1][matLen] + src[k+1][matLen] + src[k][matLen-1] + src[k][matLen+1])
-		maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(dst[k][matLen]-src[k][matLen]))
-	}
+func (worker worker) computeOuterCells(dst, src matrix.Matrix) {
+	matLen := worker.matDef.Size
 
-	return maxDiff
+	// Outer cells in the corners are a special case
+	// Top-left corner
+	dst[0][0] = 0.2 * (src[0][0] + worker.adjacents.leftValues[0] + src[0][1] + worker.adjacents.topValues[0] + src[1][0])
+	// Top-right corner
+	dst[0][matLen-1] = 0.2 * (src[0][matLen-1] + src[0][matLen-2] + worker.adjacents.rightValues[0] + worker.adjacents.topValues[matLen-1] + src[1][matLen-1])
+	// Bottom-left corner
+	dst[matLen-1][0] = 0.2 * (src[matLen-1][0] + worker.adjacents.leftValues[matLen-1] + src[matLen-1][1] + src[matLen-2][0] + worker.adjacents.bottomValues[0])
+	// Bottom-right corner
+	dst[matLen-1][matLen-1] = 0.2 * (src[matLen-1][matLen-1] + src[matLen-1][matLen-2] + worker.adjacents.rightValues[matLen-1] + src[matLen-2][0] + worker.adjacents.bottomValues[matLen-1])
+
+	// Rest of outer cells
+	// TODO: This is probably not the best way to compute the outer cells in terms of performance
+	for k := 1; k < matLen-1; k++ {
+		// Top outer cells
+		dst[0][k] = 0.2 * (src[0][k] + src[0][k-1] + src[0][k+1] + worker.adjacents.topValues[k] + src[1][k])
+		// Bottom outer cells
+		dst[matLen-1][k] = 0.2 * (src[matLen-1][k] + src[matLen-1][k-1] + src[matLen-1][k+1] + src[matLen-2][k] + worker.adjacents.bottomValues[k])
+		// Left outer cells
+		dst[k][0] = 0.2 * (src[k][0] + worker.adjacents.leftValues[k] + src[k][1] + src[k-1][0] + src[k+1][0])
+		// Right outer cells
+		dst[k][matLen-1] = 0.2 * (src[k][matLen-1] + src[k-1][matLen-1] + worker.adjacents.rightValues[k] + src[k-1][matLen-1] + src[k+1][matLen-1])
+	}
+}
+
+func (worker worker) fillBoundaries(topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) {
+	matLen, nThreadsSqrt := worker.matDef.Size, int(math.Sqrt(float64(worker.globalParams.nWorkers)))
+
+	if worker.rowNumber == 0 {
+		for j := 0; j < matLen; j++ {
+			worker.adjacents.topValues[j] = topBoundary
+		}
+	}
+	if worker.rowNumber == nThreadsSqrt-1 {
+		for j := 0; j < matLen; j++ {
+			worker.adjacents.bottomValues[j] = bottomBoundary
+		}
+	}
+	if worker.columnNumber == 0 {
+		for i := 0; i < matLen; i++ {
+			worker.adjacents.leftValues[i] = leftBoundary
+		}
+	}
+	if worker.columnNumber == nThreadsSqrt-1 {
+		for i := 0; i < matLen; i++ {
+			worker.adjacents.rightValues[i] = rightBoundary
+		}
+	}
 }
 
 // Runs the jacobi method for the worker subproblem to get its partial result
@@ -291,39 +345,33 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 
 	var matA, matB matrix.Matrix
 	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size
-	// Adjacent cells are needed to compute outer cells
-	cloneMatDef := matrix.MatrixDef{
-		matrix.Coords{matDef.Coords.X0, matDef.Coords.Y0, matDef.Coords.X1 + 1, matDef.Coords.Y1 + 1},
-		matLen + 2,
-	}
 
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
-	matA, matB = resMat.Clone(cloneMatDef), resMat.Clone(cloneMatDef)
+	matA, matB = resMat.Clone(matDef), resMat.Clone(matDef)
+
+	worker.fillBoundaries(matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 
 	for nIters := 0; maxDiff > tolerance && nIters < maxIters; nIters++ {
-		maxDiff = 0.0
-
 		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Sending outer cells\n", worker.id, goRoutineID(), nIters)
 		worker.sendOuterCells(matA)
 
 		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Computing inner cells\n", worker.id, goRoutineID(), nIters)
 		// Outer cells are a special case which will be computed later on
-		for i := 2; i < matLen-1; i++ {
-			for j := 2; j < matLen-1; j++ {
+		for i := 1; i < matLen-1; i++ {
+			for j := 1; j < matLen-1; j++ {
 				// Compute new value with 3x3 filter with no corners
 				matB[i][j] = 0.2 * (matA[i][j] + matA[i-1][j] + matA[i+1][j] + matA[i][j-1] + matA[i][j+1])
-				maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(matA[i][j]-matB[i][j]))
 			}
 		}
 
 		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Receiving adjacent cells\n", worker.id, goRoutineID(), nIters)
 		worker.recvAdjacentCells(matA)
 		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Computing outer cells\n", worker.id, goRoutineID(), nIters)
-		maxDiff = worker.computeOuterCells(matB, matA, maxDiff)
+		worker.computeOuterCells(matB, matA)
 		// Actual max diff is maximum of all threads maxDiff
 		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Reducing maxDiff\n", worker.id, goRoutineID(), nIters)
-		maxDiff = worker.maxReduce(maxDiff)
+		maxDiff = worker.computeNewMaxDiff(matB, matA)
 
 		// Swap matrices
 		matA, matB = matB, matA
@@ -336,13 +384,13 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 // RunMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
 func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
 	// TODO: Check preconditions
-	resMat, maxDiffResChns := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads)
+	resMat, maxDiffResChns := matrix.NewMatrix(initialValue, nDim, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads)
 	for i := 0; i < nThreads; i++ {
 		// These channels can also be unbuffered, as there's currently no computation between sending and receiving
 		maxDiffResChns[i] = make(chan float64, 1)
 	}
 	subprobSize, nThreadsSqrt := int(math.Sqrt(float64(nDim*nDim/nThreads))), int(math.Sqrt(float64(nThreads)))
-	workerMatLen, adjacentChns := nDim/nThreadsSqrt, newAdjacentChns(nThreads, subprobSize)
+	workerMatLen, adjacents := nDim/nThreadsSqrt, newAdjacents(nThreads, subprobSize)
 
 	var wg sync.WaitGroup
 	wg.Add(nThreads)
@@ -352,6 +400,8 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 
 		go worker{
 			id: id,
+			rowNumber: int(id/nThreadsSqrt),
+			columnNumber: id%nThreadsSqrt,
 			globalParams: globalParams{
 				nWorkers: nThreads,
 				size:     nDim,
@@ -360,7 +410,7 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 				Coords: matrix.Coords{x0, y0, x1, y1},
 				Size:   subprobSize,
 			},
-			adjacent:   adjacentChns[id],
+			adjacents:   adjacents[id],
 			maxDiffRes: maxDiffResChns,
 		}.solveSubproblem(resMat, initialValue, maxIters, tolerance, &wg)
 	}

@@ -32,7 +32,7 @@ type worker struct {
 	// For communicating with adjacent workers
 	adjacents adjacents
 	// For reducing maxDiff
-	maxDiffRes []chan float64
+	maxDiffResToRoot, maxDiffResFromRoot []chan float64
 }
 
 // Creates the corresponding adjacents for each thread
@@ -205,23 +205,23 @@ func (worker worker) maxReduce(maxDiff float64) float64 {
 		// Reduction centralized in the 'root' worker
 		// Collect and reduce maxDiff values from all workers
 		maxMaxDiff = maxDiff
-		for i := 1; i < worker.globalParams.nWorkers; i++ {
-			maxMaxDiff = utils.MaxMaxDiff(maxMaxDiff, <-worker.maxDiffRes[i])
+		for i := 0; i < worker.globalParams.nWorkers-1; i++ {
+			maxMaxDiff = utils.MaxMaxDiff(maxMaxDiff, <-worker.maxDiffResToRoot[i])
 			fmt.Printf("[Worker #%d, Go routine #%d] Received maxDiff value from %d and computed new one: %.4f\n", worker.id, goRoutineID(), i, maxMaxDiff)
 		}
 
-		fmt.Printf("[Worker #%d, Go routine #%d] Broadcasting maxDiff value: %d\n", worker.id, goRoutineID(), maxMaxDiff)
+		fmt.Printf("[Worker #%d, Go routine #%d] Broadcasting maxDiff value: %.4f\n", worker.id, goRoutineID(), maxMaxDiff)
 		// Fan out the result to the rest of the workers
-		for i := 1; i < worker.globalParams.nWorkers; i++ {
-			worker.maxDiffRes[i] <- maxMaxDiff
+		for i := 0; i < worker.globalParams.nWorkers-1; i++ {
+			worker.maxDiffResFromRoot[i] <- maxMaxDiff
 		}
 	} else {
 		fmt.Printf("[Worker #%d, Go routine #%d] Sending %.4f as my subproblem maxDiff\n", worker.id, goRoutineID(), maxDiff)
 		// 'Non-root' workers send their results
-		worker.maxDiffRes[worker.id] <- maxDiff
+		worker.maxDiffResToRoot[worker.id-1] <- maxDiff
 		fmt.Printf("[Worker #%d, Go routine #%d] Receiving the reduced maxDiff\n", worker.id, goRoutineID())
 		// Wait for result calculated by 'Root' worker
-		maxMaxDiff = <-worker.maxDiffRes[worker.id]
+		maxMaxDiff = <-worker.maxDiffResFromRoot[worker.id-1]
 		fmt.Printf("[Worker #%d, Go routine #%d] Got %.4f as reduced maxDiff\n", worker.id, goRoutineID(), maxMaxDiff)
 	}
 
@@ -384,10 +384,11 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 // RunMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
 func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
 	// TODO: Check preconditions
-	resMat, maxDiffResChns := matrix.NewMatrix(initialValue, nDim, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads)
-	for i := 0; i < nThreads; i++ {
+	resMat, maxDiffResToRoot, maxDiffResFromRoot := matrix.NewMatrix(initialValue, nDim, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads), make([]chan float64, nThreads)
+	for i := 0; i < nThreads-1; i++ {
 		// These channels can also be unbuffered, as there's currently no computation between sending and receiving
-		maxDiffResChns[i] = make(chan float64, 1)
+		maxDiffResToRoot[i] = make(chan float64, 1)
+		maxDiffResFromRoot[i] = make(chan float64, 1)
 	}
 	subprobSize, nThreadsSqrt := int(math.Sqrt(float64(nDim*nDim/nThreads))), int(math.Sqrt(float64(nThreads)))
 	workerMatLen, adjacents := nDim/nThreadsSqrt, newAdjacents(nThreads, subprobSize)
@@ -411,7 +412,8 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 				Size:   subprobSize,
 			},
 			adjacents:   adjacents[id],
-			maxDiffRes: maxDiffResChns,
+			maxDiffResToRoot: maxDiffResToRoot,
+			maxDiffResFromRoot: maxDiffResFromRoot,
 		}.solveSubproblem(resMat, initialValue, maxIters, tolerance, &wg)
 	}
 	wg.Wait()

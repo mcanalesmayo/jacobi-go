@@ -3,12 +3,8 @@ package jacobi
 import (
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 	"github.com/mcanalesmayo/jacobi-go/utils"
-	"bytes"
-	"fmt"
 	"math"
-	"strconv"
 	"sync"
-	"runtime"
 )
 
 type globalParams struct {
@@ -175,7 +171,7 @@ func (worker worker) mergeSubproblem(resMat, subprobResMat matrix.Matrix) {
 	for i := x0; i <= x1; i++ {
 		for j := y0; j <= y1; j++ {
 			// Values are ordered by the sender
-			resMat[i+1][j+1] = subprobResMat[i-x0+1][j-y0+1]
+			resMat[i][j] = subprobResMat[i-x0][j-y0]
 		}
 	}
 }
@@ -207,22 +203,17 @@ func (worker worker) maxReduce(maxDiff float64) float64 {
 		maxMaxDiff = maxDiff
 		for i := 0; i < worker.globalParams.nWorkers-1; i++ {
 			maxMaxDiff = utils.MaxMaxDiff(maxMaxDiff, <-worker.maxDiffResToRoot[i])
-			fmt.Printf("[Worker #%d, Go routine #%d] Received maxDiff value from %d and computed new one: %.4f\n", worker.id, goRoutineID(), i, maxMaxDiff)
 		}
 
-		fmt.Printf("[Worker #%d, Go routine #%d] Broadcasting maxDiff value: %.4f\n", worker.id, goRoutineID(), maxMaxDiff)
 		// Fan out the result to the rest of the workers
 		for i := 0; i < worker.globalParams.nWorkers-1; i++ {
 			worker.maxDiffResFromRoot[i] <- maxMaxDiff
 		}
 	} else {
-		fmt.Printf("[Worker #%d, Go routine #%d] Sending %.4f as my subproblem maxDiff\n", worker.id, goRoutineID(), maxDiff)
 		// 'Non-root' workers send their results
 		worker.maxDiffResToRoot[worker.id-1] <- maxDiff
-		fmt.Printf("[Worker #%d, Go routine #%d] Receiving the reduced maxDiff\n", worker.id, goRoutineID())
 		// Wait for result calculated by 'Root' worker
 		maxMaxDiff = <-worker.maxDiffResFromRoot[worker.id-1]
-		fmt.Printf("[Worker #%d, Go routine #%d] Got %.4f as reduced maxDiff\n", worker.id, goRoutineID(), maxMaxDiff)
 	}
 
 	return maxMaxDiff
@@ -312,9 +303,18 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix) {
 	}
 }
 
-func (worker worker) fillBoundaries(topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) {
+func (worker worker) setupBoundaries(initialValue, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) {
 	matLen, nThreadsSqrt := worker.matDef.Size, int(math.Sqrt(float64(worker.globalParams.nWorkers)))
 
+	// By default adjacent cell will have the initial value
+	for k := 0; k < matLen; k++ {
+		worker.adjacents.topValues[k] = initialValue
+		worker.adjacents.bottomValues[k] = initialValue
+		worker.adjacents.leftValues[k] = initialValue
+		worker.adjacents.rightValues[k] = initialValue
+	}
+
+	// Overwrite adjacent cells in special cases
 	if worker.rowNumber == 0 {
 		for j := 0; j < matLen; j++ {
 			worker.adjacents.topValues[j] = topBoundary
@@ -341,8 +341,6 @@ func (worker worker) fillBoundaries(topBoundary, bottomBoundary, leftBoundary, r
 func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64, maxIters int, tolerance float64, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	fmt.Printf("[Worker #%d, Go routine #%d] Init - matDef.Size: %d, From (%d,%d) to (%d,%d)\n", worker.id, goRoutineID(), worker.matDef.Size, worker.matDef.Coords.X0, worker.matDef.Coords.Y0, worker.matDef.Coords.X1, worker.matDef.Coords.Y1)
-
 	var matA, matB matrix.Matrix
 	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size
 
@@ -350,13 +348,11 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
 	matA, matB = resMat.Clone(matDef), resMat.Clone(matDef)
 
-	worker.fillBoundaries(matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+	worker.setupBoundaries(initialValue, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 
 	for nIters := 0; maxDiff > tolerance && nIters < maxIters; nIters++ {
-		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Sending outer cells\n", worker.id, goRoutineID(), nIters)
 		worker.sendOuterCells(matA)
 
-		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Computing inner cells\n", worker.id, goRoutineID(), nIters)
 		// Outer cells are a special case which will be computed later on
 		for i := 1; i < matLen-1; i++ {
 			for j := 1; j < matLen-1; j++ {
@@ -365,26 +361,22 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 			}
 		}
 
-		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Receiving adjacent cells\n", worker.id, goRoutineID(), nIters)
 		worker.recvAdjacentCells(matA)
-		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Computing outer cells\n", worker.id, goRoutineID(), nIters)
 		worker.computeOuterCells(matB, matA)
 		// Actual max diff is maximum of all threads maxDiff
-		fmt.Printf("[Worker #%d, Go routine #%d] Iter #%d - Reducing maxDiff\n", worker.id, goRoutineID(), nIters)
 		maxDiff = worker.computeNewMaxDiff(matB, matA)
 
 		// Swap matrices
 		matA, matB = matB, matA
 	}
 
-	fmt.Printf("[Worker #%d, Go routine #%d] After loop - Merging subproblem\n", worker.id, goRoutineID())
 	worker.mergeSubproblem(resMat, matA)
 }
 
 // RunMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
 func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
 	// TODO: Check preconditions
-	resMat, maxDiffResToRoot, maxDiffResFromRoot := matrix.NewMatrix(initialValue, nDim, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads), make([]chan float64, nThreads)
+	resMat, maxDiffResToRoot, maxDiffResFromRoot := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads), make([]chan float64, nThreads)
 	for i := 0; i < nThreads-1; i++ {
 		// These channels can also be unbuffered, as there's currently no computation between sending and receiving
 		maxDiffResToRoot[i] = make(chan float64, 1)
@@ -396,7 +388,7 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 	var wg sync.WaitGroup
 	wg.Add(nThreads)
 	for id := 0; id < nThreads; id++ {
-		x0, y0 := id/nThreadsSqrt*workerMatLen, id%nThreadsSqrt*workerMatLen
+		x0, y0 := id/nThreadsSqrt*workerMatLen+1, id%nThreadsSqrt*workerMatLen+1
 		x1, y1 := x0+workerMatLen-1, y0+workerMatLen-1
 
 		go worker{
@@ -420,15 +412,4 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 
 	// TODO: Return number of iterations and maximum diff
 	return resMat
-}
-
-// IMPORTANT: ONLY FOR DEBUG PURPOSES!!
-func goRoutineID() uint64 {
-    b := make([]byte, 64)
-    b = b[:runtime.Stack(b, false)]
-    b = bytes.TrimPrefix(b, []byte("goroutine "))
-    b = b[:bytes.IndexByte(b, ' ')]
-    n, _ := strconv.ParseUint(string(b), 10, 64)
-
-    return n
 }

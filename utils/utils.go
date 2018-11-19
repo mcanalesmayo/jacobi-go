@@ -29,7 +29,7 @@ func CompareFloats(fpA, fpB float64, epsilon float64) bool {
 
 	if fpA == fpB {
 		res = true
-	} else if math.Abs(fpA - fpB) < epsilon {
+	} else if math.Abs(fpA-fpB) < epsilon {
 		res = true
 	}
 

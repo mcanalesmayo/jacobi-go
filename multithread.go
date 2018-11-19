@@ -15,7 +15,7 @@ type adjacents struct {
 	// For sharing values among adjacent workers
 	toTopWorker, toBottomWorker, toRightWorker, toLeftWorker         chan float64
 	fromTopWorker, fromBottomWorker, fromRightWorker, fromLeftWorker chan float64
-	topValues, bottomValues, rightValues, leftValues []float64
+	topValues, bottomValues, rightValues, leftValues                 []float64
 }
 
 type worker struct {
@@ -154,10 +154,10 @@ func newAdjacents(nThreads, subprobSize int) []adjacents {
 			}
 		}
 
-		res[id].topValues    = make([]float64, subprobSize)
+		res[id].topValues = make([]float64, subprobSize)
 		res[id].bottomValues = make([]float64, subprobSize)
-		res[id].leftValues   = make([]float64, subprobSize)
-		res[id].rightValues  = make([]float64, subprobSize)
+		res[id].leftValues = make([]float64, subprobSize)
+		res[id].rightValues = make([]float64, subprobSize)
 	}
 
 	return res
@@ -392,9 +392,9 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 		x1, y1 := x0+workerMatLen-1, y0+workerMatLen-1
 
 		go worker{
-			id: id,
-			rowNumber: int(id/nThreadsSqrt),
-			columnNumber: id%nThreadsSqrt,
+			id:           id,
+			rowNumber:    int(id / nThreadsSqrt),
+			columnNumber: id % nThreadsSqrt,
 			globalParams: globalParams{
 				nWorkers: nThreads,
 				size:     nDim,
@@ -403,8 +403,8 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 				Coords: matrix.Coords{x0, y0, x1, y1},
 				Size:   subprobSize,
 			},
-			adjacents:   adjacents[id],
-			maxDiffResToRoot: maxDiffResToRoot,
+			adjacents:          adjacents[id],
+			maxDiffResToRoot:   maxDiffResToRoot,
 			maxDiffResFromRoot: maxDiffResFromRoot,
 		}.solveSubproblem(resMat, initialValue, maxIters, tolerance, &wg)
 	}

@@ -1,8 +1,8 @@
 package matrix
 
 import (
-	"github.com/mcanalesmayo/jacobi-go/utils"
 	"fmt"
+	"github.com/mcanalesmayo/jacobi-go/utils"
 	"strings"
 )
 

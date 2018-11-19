@@ -31,7 +31,7 @@ func RunSinglethreadedJacobi(initialValue float64, nDim int, maxIters int, toler
 
 		// Swap matrices
 		matA, matB = matB, matA
-		nIters += 1
+		nIters++
 	}
 
 	return matA, nIters, maxDiff

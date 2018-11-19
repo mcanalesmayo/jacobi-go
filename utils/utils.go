@@ -5,6 +5,8 @@ import (
 )
 
 const (
+	// Epsilon is the default maximum tolerance that can be used for the difference
+	// between two fp numbers.
 	Epsilon = 1.0e-9
 )
 

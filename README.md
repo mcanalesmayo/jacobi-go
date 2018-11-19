@@ -4,8 +4,6 @@
 [![Godoc](https://img.shields.io/badge/go-documentation-blue.svg)](https://godoc.org/github.com/mcanalesmayo/jacobi-go)
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/mcanalesmayo/jacobi-go/master/LICENSE)
 
-**In progress**
-
 ## Description
 Go implementation of a simulation of thermal transmission in a 2D space.
 

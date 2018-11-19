@@ -2,6 +2,7 @@
 [![CircleCI](https://circleci.com/gh/mcanalesmayo/jacobi-go.svg?style=svg)](https://circleci.com/gh/mcanalesmayo/jacobi-go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mcanalesmayo/jacobi-go)](https://goreportcard.com/report/github.com/mcanalesmayo/jacobi-go)
 [![Godoc](https://img.shields.io/badge/go-documentation-blue.svg)](https://godoc.org/github.com/mcanalesmayo/jacobi-go)
+[![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/mcanalesmayo/jacobi-go/master/LICENSE)
 
 **In progress**
 

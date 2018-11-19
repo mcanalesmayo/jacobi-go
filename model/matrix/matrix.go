@@ -58,9 +58,7 @@ func (mat Matrix) CompareTo(anotherMat Matrix) bool {
 		return false
 	} else {
 		for i := range mat {
-			// Need to assign to vars so that Row methods can be used
-			var rowA, rowB Row = mat[i], anotherMat[i]
-			if !rowA.CompareTo(rowB) {
+			if !mat[i].CompareTo(anotherMat[i]) {
 				return false
 			}
 		}

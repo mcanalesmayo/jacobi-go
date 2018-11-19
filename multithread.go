@@ -287,7 +287,7 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix) {
 	// Bottom-left corner
 	dst[matLen-1][0] = 0.2 * (src[matLen-1][0] + worker.adjacents.leftValues[matLen-1] + src[matLen-1][1] + src[matLen-2][0] + worker.adjacents.bottomValues[0])
 	// Bottom-right corner
-	dst[matLen-1][matLen-1] = 0.2 * (src[matLen-1][matLen-1] + src[matLen-1][matLen-2] + worker.adjacents.rightValues[matLen-1] + src[matLen-2][0] + worker.adjacents.bottomValues[matLen-1])
+	dst[matLen-1][matLen-1] = 0.2 * (src[matLen-1][matLen-1] + src[matLen-1][matLen-2] + worker.adjacents.rightValues[matLen-1] + src[matLen-2][matLen-1] + worker.adjacents.bottomValues[matLen-1])
 
 	// Rest of outer cells
 	// TODO: This is probably not the best way to compute the outer cells in terms of performance
@@ -299,7 +299,7 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix) {
 		// Left outer cells
 		dst[k][0] = 0.2 * (src[k][0] + worker.adjacents.leftValues[k] + src[k][1] + src[k-1][0] + src[k+1][0])
 		// Right outer cells
-		dst[k][matLen-1] = 0.2 * (src[k][matLen-1] + src[k-1][matLen-1] + worker.adjacents.rightValues[k] + src[k-1][matLen-1] + src[k+1][matLen-1])
+		dst[k][matLen-1] = 0.2 * (src[k][matLen-1] + src[k][matLen-2] + worker.adjacents.rightValues[k] + src[k-1][matLen-1] + src[k+1][matLen-1])
 	}
 }
 

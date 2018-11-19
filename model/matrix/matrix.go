@@ -1,6 +1,7 @@
 package matrix
 
 import (
+	"github.com/mcanalesmayo/jacobi-go/utils"
 	"fmt"
 	"strings"
 )
@@ -40,7 +41,7 @@ func (row Row) CompareTo(anotherRow Row) bool {
 		return false
 	} else {
 		for i := range row {
-			if row[i] != anotherRow[i] {
+			if !utils.CompareFloats(row[i], anotherRow[i], utils.Epsilon) {
 				return false
 			}
 		}
@@ -59,6 +60,7 @@ func (mat Matrix) CompareTo(anotherMat Matrix) bool {
 	} else {
 		for i := range mat {
 			if !mat[i].CompareTo(anotherMat[i]) {
+				fmt.Printf("[%d]\n", i)
 				return false
 			}
 		}

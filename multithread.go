@@ -373,8 +373,8 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	worker.mergeSubproblem(resMat, matA)
 }
 
-// RunMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
-func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) matrix.Matrix {
+// runMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
+func runMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) (matrix.Matrix, int, float64) {
 	// TODO: Check preconditions
 	resMat, maxDiffResToRoot, maxDiffResFromRoot := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads), make([]chan float64, nThreads)
 	for i := 0; i < nThreads-1; i++ {
@@ -411,5 +411,5 @@ func RunMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolera
 	wg.Wait()
 
 	// TODO: Return number of iterations and maximum diff
-	return resMat
+	return resMat, 0, 0.0
 }

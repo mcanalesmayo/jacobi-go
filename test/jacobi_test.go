@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestRunSinglethreadedJacobi(t *testing.T) {
+func TestRunJacobi(t *testing.T) {
 	initialValue, nDim, maxIters, tolerance := 0.5, 16, 1000, 1.0e-4
 
 	expectedMat := matrix.Matrix{
@@ -31,11 +31,15 @@ func TestRunSinglethreadedJacobi(t *testing.T) {
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 	}
 
-	fmt.Printf("Running simulation with initial value=%.4f, num dims=%d, max iterations=%d and tolerance=%.4f\n",
-		initialValue, nDim, maxIters, tolerance)
+	nThreadsExpectedSuccessCases := []int{1, 4}
 
-	actualMat, _, _ := jacobi.RunSinglethreadedJacobi(initialValue, nDim, maxIters, tolerance)
-	if !actualMat.CompareTo(expectedMat) {
-		t.Errorf("Expected matrix doesn't match the actual one")
+	for _, nThreads := range nThreadsExpectedSuccessCases {
+		fmt.Printf("Running simulation with initial value=%.4f, num dims=%d, max iterations=%d, tolerance=%.4f and num threads=%d\n",
+			initialValue, nDim, maxIters, tolerance, nThreads)
+
+		actualMat, _, _ := jacobi.RunJacobi(initialValue, nDim, maxIters, tolerance, nThreads)
+		if !actualMat.CompareTo(expectedMat) {
+			t.Errorf("Expected matrix doesn't match the actual one")
+		}
 	}
 }

@@ -6,22 +6,30 @@ import (
 	"testing"
 )
 
-func BenchmarkRunSinglethreadedJacobi(b *testing.B) {
+func BenchmarkRunJacobi(b *testing.B) {
 	experiments := []struct {
 		initialValue float64
 		nDim         int
 		maxIters     int
 		tolerance    float64
+		nThreads     int
 	}{
-		{0.5, 16, 1000, 1.0e-4},
-		{0.5, 128, 1000, 1.0e-4},
-		{0.5, 1024, 1000, 1.0e-4},
+		{0.5, 16, 1000, 1.0e-4, 1},
+		{0.5, 64, 1000, 1.0e-4, 1},
+		{0.5, 256, 1000, 1.0e-4, 1},
+		{0.5, 1024, 1000, 1.0e-4, 1},
+		{0.5, 4098, 1000, 1.0e-4, 1},
+		{0.5, 16, 1000, 1.0e-4, 4},
+		{0.5, 64, 1000, 1.0e-4, 4},
+		{0.5, 256, 1000, 1.0e-4, 4},
+		{0.5, 1024, 1000, 1.0e-4, 4},
+		{0.5, 4098, 1000, 1.0e-4, 4},
 	}
 
 	for _, params := range experiments {
-		b.Run(fmt.Sprintf("sequential,%.4f,%d,%d,%.4f", params.initialValue, params.nDim, params.maxIters, params.tolerance), func(b *testing.B) {
+		b.Run(fmt.Sprintf("%.4f,%d,%d,%.4f,%d", params.initialValue, params.nDim, params.maxIters, params.tolerance, params.nThreads), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				jacobi.RunSinglethreadedJacobi(params.initialValue, params.nDim, params.maxIters, params.tolerance)
+				jacobi.RunJacobi(params.initialValue, params.nDim, params.maxIters, params.tolerance, params.nThreads)
 			}
 		})
 	}

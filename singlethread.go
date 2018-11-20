@@ -6,8 +6,8 @@ import (
 	"math"
 )
 
-// RunSinglethreadedJacobi runs a single-threaded version of the jacobi method
-func RunSinglethreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) (matrix.Matrix, int, float64) {
+// runSinglethreadedJacobi runs a single-threaded version of the jacobi method
+func runSinglethreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64) (matrix.Matrix, int, float64) {
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
 	matA := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)

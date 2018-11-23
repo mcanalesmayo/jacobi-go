@@ -4,7 +4,12 @@ import (
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
 	"github.com/mcanalesmayo/jacobi-go/utils"
 	"math"
+	"os"
 	"sync"
+)
+
+const (
+	invalidProblemParams = 1
 )
 
 type globalParams struct {
@@ -373,8 +378,22 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	worker.mergeSubproblem(resMat, matA)
 }
 
+func validatePreconditions(nDim, nThreads int) bool {
+	nThreadsSqrt := int(math.Sqrt(float64(nThreads)))
+
+	if nThreadsSqrt*nThreadsSqrt == nThreads && nDim%nThreads == 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
 // runMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
 func runMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) (matrix.Matrix, int, float64) {
+	if !validatePreconditions(nDim, nThreads) {
+		os.Exit(invalidProblemParams)
+	}
+
 	// TODO: Check preconditions
 	resMat, maxDiffResToRoot, maxDiffResFromRoot := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads), make([]chan float64, nThreads)
 	for i := 0; i < nThreads-1; i++ {

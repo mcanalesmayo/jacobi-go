@@ -2,7 +2,6 @@ package jacobi
 
 import (
 	"github.com/mcanalesmayo/jacobi-go/model/matrix"
-	"github.com/mcanalesmayo/jacobi-go/utils"
 	"math"
 	"os"
 	"sync"
@@ -188,7 +187,7 @@ func (worker worker) computeNewMaxDiff(matB, matA matrix.Matrix) float64 {
 	// My subproblem maxDiff
 	for i := 0; i < matLen; i++ {
 		for j := 0; j < matLen; j++ {
-			maxDiff = utils.MaxMaxDiff(maxDiff, math.Abs(matB[i][j]-matA[i][j]))
+			maxDiff = math.Max(maxDiff, math.Abs(matB[i][j]-matA[i][j]))
 		}
 	}
 
@@ -207,7 +206,7 @@ func (worker worker) maxReduce(maxDiff float64) float64 {
 		// Collect and reduce maxDiff values from all workers
 		maxMaxDiff = maxDiff
 		for i := 0; i < worker.globalParams.nWorkers-1; i++ {
-			maxMaxDiff = utils.MaxMaxDiff(maxMaxDiff, <-worker.maxDiffResToRoot[i])
+			maxMaxDiff = math.Max(maxMaxDiff, <-worker.maxDiffResToRoot[i])
 		}
 
 		// Fan out the result to the rest of the workers

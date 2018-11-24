@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	// Epsilon is the default maximum tolerance that can be used for the difference
-	// between two fp numbers.
+	// Epsilon is the default maximum tolerance that can be used for comparing
+	// if two fp numbers are equal.
 	Epsilon = 1.0e-9
 )
 

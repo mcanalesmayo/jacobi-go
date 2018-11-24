@@ -15,7 +15,7 @@ func runSinglethreadedJacobi(initialValue float64, nDim int, maxIters int, toler
 		nDim + 2,
 	})
 
-	matrixIters, nIters, maxDiff := nDim+1, 0, 1.0
+	matrixIters, nIters, maxDiff := nDim+1, 0, math.MaxFloat64
 
 	for maxDiff > tolerance && nIters < maxIters {
 		maxDiff = 0.0

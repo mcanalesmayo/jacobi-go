@@ -346,7 +346,7 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 	defer wg.Done()
 
 	var matA, matB matrix.Matrix
-	maxDiff, matDef, matLen := 1.0, worker.matDef, worker.matDef.Size
+	maxDiff, matDef, matLen := math.MaxFloat64, worker.matDef, worker.matDef.Size
 
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values

@@ -378,13 +378,10 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 }
 
 func validatePreconditions(nDim, nThreads int) bool {
-	nThreadsSqrt := int(math.Sqrt(float64(nThreads)))
-
-	if nThreadsSqrt*nThreadsSqrt == nThreads && nDim%nThreads == 0 {
+	if nThreadsSqrt := int(math.Sqrt(float64(nThreads))); nThreadsSqrt*nThreadsSqrt == nThreads && nDim%nThreads == 0 {
 		return true
-	} else {
-		return false
 	}
+	return false
 }
 
 // runMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines

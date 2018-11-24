@@ -15,7 +15,10 @@ By using the built-in tools we can easily run the benchmark and take a look at s
 To run the benchmark:
 ```
 cd jacobi-go
-go test -v -memprofile=memprof.out -cpuprofile=cpuprof.out -trace=trace.out -bench=. benchmark/benchmark_test.go
+# For CPU and memory profiles
+go test -v -cpuprofile=cpuprof.out -memprofile=memprof.out -bench=. benchmark/benchmark_test.go
+# For traces
+go test -v -trace=trace.out -bench=. benchmark/benchmark_test.go
 ```
 
 To visualize the cpu metrics (same thing works for memory metrics) in PNG format or via web browser:

@@ -29,7 +29,7 @@ func TestRunJacobi(t *testing.T) {
 		{1, 0.7046958768692897, 0.5142610132484301, 0.3985540282523869, 0.32745912353093765, 0.28295313737802114, 0.2551884267707393, 0.23888640962963703, 0.2313184081396858, 0.2313184081396858, 0.23888640962963703, 0.2551884267707393, 0.28295313737802114, 0.32745912353093765, 0.39855402825238695, 0.5142610132484301, 0.7046958768692897, 1},
 		{1, 0.5035587521074295, 0.30955564272988967, 0.2204352656312532, 0.1736786951141108, 0.1468809274968253, 0.1309635848361717, 0.12186542164679866, 0.11769811874997892, 0.11769811874997892, 0.12186542164679866, 0.1309635848361717, 0.1468809274968253, 0.1736786951141108, 0.2204352656312532, 0.3095556427298897, 0.5035587521074295, 1},
 		{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-	}.(matrix.Matrix)
+	}
 
 	nThreadsExpectedSuccessCases := []int{1, 4}
 	matrixTypeExpectedSuccessCases := []matrix.MatrixType{matrix.TwoDimMatrixType, matrix.OneDimMatrixType}
@@ -37,10 +37,10 @@ func TestRunJacobi(t *testing.T) {
 	for _, nThreads := range nThreadsExpectedSuccessCases {
 		for _, matrixType := range matrixTypeExpectedSuccessCases {
 			fmt.Printf("Running simulation with matrix type='%s', initial value=%.4f, num dims=%d, max iterations=%d, tolerance=%.4f and num threads=%d\n",
-				matrixType, initialValue, nDim, maxIters, tolerance, nThreads)
+				matrixType.ToString(), initialValue, nDim, maxIters, tolerance, nThreads)
 
 			actualMat, _, _ := jacobi.RunJacobi(matrixType, initialValue, nDim, maxIters, tolerance, nThreads)
-			if !matrix.CompareMatrices(actualMat.(matrix.Matrix), expectedMat) {
+			if !matrix.CompareMatrices(actualMat, expectedMat) {
 				t.Errorf("Expected matrix doesn't match the actual one")
 			}
 		}

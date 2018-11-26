@@ -17,6 +17,13 @@ const (
 
 type MatrixType int
 
+func (matrixType MatrixType) ToString() string {
+	if matrixType == TwoDimMatrixType {
+		return "Two dimensions matrix"
+	}
+	return "One dimension matrix"
+}
+
 // Coords defines a 2D square
 type Coords struct {
 	// Top-left corner and bottom-right corner

@@ -64,15 +64,15 @@ func CompareMatrices(matA, matB Matrix) bool {
 
 	if matNDim != matB.GetNDim() {
 		return false
-	} else {
-		for i := 0; i < matNDim; i++ {
-			for j := 0; j < matNDim; j++ {
-				if !utils.CompareFloats(matA.GetCell(i, j), matB.GetCell(i, j), utils.Epsilon) {
-					return false
-				}
+	}
+
+	for i := 0; i < matNDim; i++ {
+		for j := 0; j < matNDim; j++ {
+			if !utils.CompareFloats(matA.GetCell(i, j), matB.GetCell(i, j), utils.Epsilon) {
+				return false
 			}
 		}
-
-		return true
 	}
+
+	return true
 }

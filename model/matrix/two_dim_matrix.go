@@ -12,7 +12,7 @@ type TwoDimMatrix []row
 type row []float64
 
 // NewTwoDimMatrix creates and initializes a 2D array representing a matrix
-func NewTwoDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) interface{} {
+func NewTwoDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) TwoDimMatrix {
 	mat := make(TwoDimMatrix, n, n)
 	// Init inner cells value
 	for i := range mat {

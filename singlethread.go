@@ -11,9 +11,9 @@ func runSinglethreadedJacobi(matrixType matrix.MatrixType, initialValue float64,
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
 	var matA matrix.Matrix
 	if matrixType == matrix.TwoDimMatrixType {
-		matA = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot).(matrix.Matrix)
+		matA = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 	} else {
-		matA = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot).(matrix.Matrix)
+		matA = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 	}
 	matB := matA.Clone(matrix.MatrixDef{
 		matrix.Coords{0, 0, nDim + 1, nDim + 1},

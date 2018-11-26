@@ -391,9 +391,9 @@ func runMultithreadedJacobi(matrixType matrix.MatrixType, initialValue float64, 
 
 	var resMat matrix.Matrix
 	if matrixType == matrix.TwoDimMatrixType {
-		resMat = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot).(matrix.Matrix)
+		resMat = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 	} else {
-		resMat = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot).(matrix.Matrix)
+		resMat = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 	}
 
 	maxDiffResToRoot, maxDiffResFromRoot := make([]chan float64, nThreads), make([]chan float64, nThreads)

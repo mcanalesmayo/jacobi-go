@@ -12,7 +12,7 @@ type OneDimMatrix struct {
 }
 
 // NewOneDimMatrix creates and initializes a 2D array representing a matrix
-func NewOneDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) interface{} {
+func NewOneDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) OneDimMatrix {
 	mat := OneDimMatrix{
 		matrix: make([]float64, n*n),
 		nDim:   n,

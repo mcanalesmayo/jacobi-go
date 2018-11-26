@@ -175,7 +175,7 @@ func (worker worker) mergeSubproblem(resMat, subprobResMat matrix.Matrix) {
 	for i := x0; i <= x1; i++ {
 		for j := y0; j <= y1; j++ {
 			// Values are ordered by the sender
-			resMat[i][j] = subprobResMat[i-x0][j-y0]
+			resMat.Set(i, j, subprobResMat.Get(i-x0, j-y0))
 		}
 	}
 }
@@ -187,7 +187,7 @@ func (worker worker) computeNewMaxDiff(matB, matA matrix.Matrix) float64 {
 	// My subproblem maxDiff
 	for i := 0; i < matLen; i++ {
 		for j := 0; j < matLen; j++ {
-			maxDiff = math.Max(maxDiff, math.Abs(matB[i][j]-matA[i][j]))
+			maxDiff = math.Max(maxDiff, math.Abs(matB.Get(i, j)-matA.Get(i, j)))
 		}
 	}
 
@@ -232,22 +232,22 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 	// checks are done for every jacobi iteration
 	if worker.rowNumber != 0 {
 		for j := 0; j < matLen; j++ {
-			worker.adjacents.toTopWorker <- mat[0][j]
+			worker.adjacents.toTopWorker <- mat.Get(0, j)
 		}
 	}
 	if worker.rowNumber != nThreadsSqrt-1 {
 		for j := 0; j < matLen; j++ {
-			worker.adjacents.toBottomWorker <- mat[matLen-1][j]
+			worker.adjacents.toBottomWorker <- mat.Get(matLen-1, j)
 		}
 	}
 	if worker.columnNumber != 0 {
 		for i := 0; i < matLen; i++ {
-			worker.adjacents.toLeftWorker <- mat[i][0]
+			worker.adjacents.toLeftWorker <- mat.Get(i, 0)
 		}
 	}
 	if worker.columnNumber != nThreadsSqrt-1 {
 		for i := 0; i < matLen; i++ {
-			worker.adjacents.toRightWorker <- mat[i][matLen-1]
+			worker.adjacents.toRightWorker <- mat.Get(i, matLen-1)
 		}
 	}
 }
@@ -285,25 +285,25 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix) {
 
 	// Outer cells in the corners are a special case
 	// Top-left corner
-	dst[0][0] = 0.2 * (src[0][0] + worker.adjacents.leftValues[0] + src[0][1] + worker.adjacents.topValues[0] + src[1][0])
+	dst.Set(0, 0, 0.2 * (src.Get(0, 0) + worker.adjacents.leftValues[0] + src.Get(0, 1) + worker.adjacents.topValues[0] + src.Get(1, 0)))
 	// Top-right corner
-	dst[0][matLen-1] = 0.2 * (src[0][matLen-1] + src[0][matLen-2] + worker.adjacents.rightValues[0] + worker.adjacents.topValues[matLen-1] + src[1][matLen-1])
+	dst.Set(0, matLen-1, 0.2 * (src.Get(0, matLen-1) + src.Get(0, matLen-2) + worker.adjacents.rightValues[0] + worker.adjacents.topValues[matLen-1] + src.Get(1, matLen-1)))
 	// Bottom-left corner
-	dst[matLen-1][0] = 0.2 * (src[matLen-1][0] + worker.adjacents.leftValues[matLen-1] + src[matLen-1][1] + src[matLen-2][0] + worker.adjacents.bottomValues[0])
+	dst.Set(matLen-1, 0, 0.2 * (src.Get(matLen-1, 0) + worker.adjacents.leftValues[matLen-1] + src.Get(matLen-1, 1) + src.Get(matLen-2, 0) + worker.adjacents.bottomValues[0]))
 	// Bottom-right corner
-	dst[matLen-1][matLen-1] = 0.2 * (src[matLen-1][matLen-1] + src[matLen-1][matLen-2] + worker.adjacents.rightValues[matLen-1] + src[matLen-2][matLen-1] + worker.adjacents.bottomValues[matLen-1])
+	dst.Set(matLen-1, matLen-1, 0.2 * (src.Get(matLen-1, matLen-1) + src.Get(matLen-1, matLen-2) + worker.adjacents.rightValues[matLen-1] + src.Get(matLen-2, matLen-1) + worker.adjacents.bottomValues[matLen-1]))
 
 	// Rest of outer cells
 	// TODO: This is probably not the best way to compute the outer cells in terms of performance
 	for k := 1; k < matLen-1; k++ {
 		// Top outer cells
-		dst[0][k] = 0.2 * (src[0][k] + src[0][k-1] + src[0][k+1] + worker.adjacents.topValues[k] + src[1][k])
+		dst.Set(0, k, 0.2 * (src.Get(0, k) + src.Get(0, k-1) + src.Get(0, k+1) + worker.adjacents.topValues[k] + src.Get(1, k)))
 		// Bottom outer cells
-		dst[matLen-1][k] = 0.2 * (src[matLen-1][k] + src[matLen-1][k-1] + src[matLen-1][k+1] + src[matLen-2][k] + worker.adjacents.bottomValues[k])
+		dst.Set(matLen-1, k, 0.2 * (src.Get(matLen-1, k) + src.Get(matLen-1, k-1) + src.Get(matLen-1, k+1) + src.Get(matLen-2, k) + worker.adjacents.bottomValues[k]))
 		// Left outer cells
-		dst[k][0] = 0.2 * (src[k][0] + worker.adjacents.leftValues[k] + src[k][1] + src[k-1][0] + src[k+1][0])
+		dst.Set(k, 0, 0.2 * (src.Get(k, 0) + worker.adjacents.leftValues[k] + src.Get(k, 1) + src.Get(k-1, 0) + src.Get(k+1, 0)))
 		// Right outer cells
-		dst[k][matLen-1] = 0.2 * (src[k][matLen-1] + src[k][matLen-2] + worker.adjacents.rightValues[k] + src[k-1][matLen-1] + src[k+1][matLen-1])
+		dst.Set(k, matLen-1, 0.2 * (src.Get(k, matLen-1) + src.Get(k, matLen-2) + worker.adjacents.rightValues[k] + src.Get(k-1, matLen-1) + src.Get(k+1, matLen-1)))
 	}
 }
 
@@ -361,7 +361,7 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 		for i := 1; i < matLen-1; i++ {
 			for j := 1; j < matLen-1; j++ {
 				// Compute new value with 3x3 filter with no corners
-				matB[i][j] = 0.2 * (matA[i][j] + matA[i-1][j] + matA[i+1][j] + matA[i][j-1] + matA[i][j+1])
+				matB.Set(i, j, 0.2 * (matA.Get(i, j) + matA.Get(i-1, j) + matA.Get(i+1, j) + matA.Get(i, j-1) + matA.Get(i, j+1)))
 			}
 		}
 
@@ -385,13 +385,19 @@ func validatePreconditions(nDim, nThreads int) bool {
 }
 
 // runMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
-func runMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) (matrix.Matrix, int, float64) {
+func runMultithreadedJacobi(matrixType matrix.MatrixType, initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) (matrix.Matrix, int, float64) {
 	if !validatePreconditions(nDim, nThreads) {
 		os.Exit(invalidProblemParams)
 	}
 
-	// TODO: Check preconditions
-	resMat, maxDiffResToRoot, maxDiffResFromRoot := matrix.NewMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot), make([]chan float64, nThreads), make([]chan float64, nThreads)
+	var resMat matrix.Matrix
+	if matrixType == matrix.TwoDimMatrixType {
+		resMat = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+	} else {
+		resMat = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+	}
+
+	maxDiffResToRoot, maxDiffResFromRoot := make([]chan float64, nThreads), make([]chan float64, nThreads)
 	for i := 0; i < nThreads-1; i++ {
 		// These channels can also be unbuffered, as there's currently no computation between sending and receiving
 		maxDiffResToRoot[i] = make(chan float64, 1)

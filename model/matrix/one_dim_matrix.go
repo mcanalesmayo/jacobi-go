@@ -8,14 +8,14 @@ import (
 // OneDimMatrix represents a matrix in a 1D array
 type OneDimMatrix struct {
 	matrix []float64
-	nDim int
+	nDim   int
 }
 
 // NewOneDimMatrix creates and initializes a 2D array representing a matrix
 func NewOneDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) interface{} {
 	mat := OneDimMatrix{
 		matrix: make([]float64, n*n),
-		nDim: n,
+		nDim:   n,
 	}
 
 	// Init inner cells value
@@ -57,7 +57,7 @@ func (mat OneDimMatrix) Clone(matDef MatrixDef) interface{} {
 	x0, y0, x1, y1, length := matDef.Coords.X0, matDef.Coords.Y0, matDef.Coords.X1, matDef.Coords.Y1, matDef.Size
 
 	clone := OneDimMatrix{
-		nDim: length,
+		nDim:   length,
 		matrix: make([]float64, length*length),
 	}
 	for i := x0; i <= x1; i++ {

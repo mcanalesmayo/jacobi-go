@@ -285,25 +285,25 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix) {
 
 	// Outer cells in the corners are a special case
 	// Top-left corner
-	dst.SetCell(0, 0, 0.2 * (src.GetCell(0, 0) + worker.adjacents.leftValues[0] + src.GetCell(0, 1) + worker.adjacents.topValues[0] + src.GetCell(1, 0)))
+	dst.SetCell(0, 0, 0.2*(src.GetCell(0, 0)+worker.adjacents.leftValues[0]+src.GetCell(0, 1)+worker.adjacents.topValues[0]+src.GetCell(1, 0)))
 	// Top-right corner
-	dst.SetCell(0, matLen-1, 0.2 * (src.GetCell(0, matLen-1) + src.GetCell(0, matLen-2) + worker.adjacents.rightValues[0] + worker.adjacents.topValues[matLen-1] + src.GetCell(1, matLen-1)))
+	dst.SetCell(0, matLen-1, 0.2*(src.GetCell(0, matLen-1)+src.GetCell(0, matLen-2)+worker.adjacents.rightValues[0]+worker.adjacents.topValues[matLen-1]+src.GetCell(1, matLen-1)))
 	// Bottom-left corner
-	dst.SetCell(matLen-1, 0, 0.2 * (src.GetCell(matLen-1, 0) + worker.adjacents.leftValues[matLen-1] + src.GetCell(matLen-1, 1) + src.GetCell(matLen-2, 0) + worker.adjacents.bottomValues[0]))
+	dst.SetCell(matLen-1, 0, 0.2*(src.GetCell(matLen-1, 0)+worker.adjacents.leftValues[matLen-1]+src.GetCell(matLen-1, 1)+src.GetCell(matLen-2, 0)+worker.adjacents.bottomValues[0]))
 	// Bottom-right corner
-	dst.SetCell(matLen-1, matLen-1, 0.2 * (src.GetCell(matLen-1, matLen-1) + src.GetCell(matLen-1, matLen-2) + worker.adjacents.rightValues[matLen-1] + src.GetCell(matLen-2, matLen-1) + worker.adjacents.bottomValues[matLen-1]))
+	dst.SetCell(matLen-1, matLen-1, 0.2*(src.GetCell(matLen-1, matLen-1)+src.GetCell(matLen-1, matLen-2)+worker.adjacents.rightValues[matLen-1]+src.GetCell(matLen-2, matLen-1)+worker.adjacents.bottomValues[matLen-1]))
 
 	// Rest of outer cells
 	// TODO: This is probably not the best way to compute the outer cells in terms of performance
 	for k := 1; k < matLen-1; k++ {
 		// Top outer cells
-		dst.SetCell(0, k, 0.2 * (src.GetCell(0, k) + src.GetCell(0, k-1) + src.GetCell(0, k+1) + worker.adjacents.topValues[k] + src.GetCell(1, k)))
+		dst.SetCell(0, k, 0.2*(src.GetCell(0, k)+src.GetCell(0, k-1)+src.GetCell(0, k+1)+worker.adjacents.topValues[k]+src.GetCell(1, k)))
 		// Bottom outer cells
-		dst.SetCell(matLen-1, k, 0.2 * (src.GetCell(matLen-1, k) + src.GetCell(matLen-1, k-1) + src.GetCell(matLen-1, k+1) + src.GetCell(matLen-2, k) + worker.adjacents.bottomValues[k]))
+		dst.SetCell(matLen-1, k, 0.2*(src.GetCell(matLen-1, k)+src.GetCell(matLen-1, k-1)+src.GetCell(matLen-1, k+1)+src.GetCell(matLen-2, k)+worker.adjacents.bottomValues[k]))
 		// Left outer cells
-		dst.SetCell(k, 0, 0.2 * (src.GetCell(k, 0) + worker.adjacents.leftValues[k] + src.GetCell(k, 1) + src.GetCell(k-1, 0) + src.GetCell(k+1, 0)))
+		dst.SetCell(k, 0, 0.2*(src.GetCell(k, 0)+worker.adjacents.leftValues[k]+src.GetCell(k, 1)+src.GetCell(k-1, 0)+src.GetCell(k+1, 0)))
 		// Right outer cells
-		dst.SetCell(k, matLen-1, 0.2 * (src.GetCell(k, matLen-1) + src.GetCell(k, matLen-2) + worker.adjacents.rightValues[k] + src.GetCell(k-1, matLen-1) + src.GetCell(k+1, matLen-1)))
+		dst.SetCell(k, matLen-1, 0.2*(src.GetCell(k, matLen-1)+src.GetCell(k, matLen-2)+worker.adjacents.rightValues[k]+src.GetCell(k-1, matLen-1)+src.GetCell(k+1, matLen-1)))
 	}
 }
 
@@ -360,7 +360,7 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 		for i := 1; i < matLen-1; i++ {
 			for j := 1; j < matLen-1; j++ {
 				// Compute new value with 3x3 filter with no corners
-				matB.SetCell(i, j, 0.2 * (matA.GetCell(i, j) + matA.GetCell(i-1, j) + matA.GetCell(i+1, j) + matA.GetCell(i, j-1) + matA.GetCell(i, j+1)))
+				matB.SetCell(i, j, 0.2*(matA.GetCell(i, j)+matA.GetCell(i-1, j)+matA.GetCell(i+1, j)+matA.GetCell(i, j-1)+matA.GetCell(i, j+1)))
 			}
 		}
 

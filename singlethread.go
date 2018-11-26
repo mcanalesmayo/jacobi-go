@@ -28,7 +28,7 @@ func runSinglethreadedJacobi(matrixType matrix.MatrixType, initialValue float64,
 		for i := 1; i < matrixIters; i++ {
 			for j := 1; j < matrixIters; j++ {
 				// Compute new value with 3x3 filter with no corners
-				matB.SetCell(i, j, 0.2 * (matA.GetCell(i, j) + matA.GetCell(i-1, j) + matA.GetCell(i+1, j) + matA.GetCell(i, j-1) + matA.GetCell(i, j+1)))
+				matB.SetCell(i, j, 0.2*(matA.GetCell(i, j)+matA.GetCell(i-1, j)+matA.GetCell(i+1, j)+matA.GetCell(i, j-1)+matA.GetCell(i, j+1)))
 				maxDiff = math.Max(maxDiff, math.Abs(matA.GetCell(i, j)-matB.GetCell(i, j)))
 			}
 		}

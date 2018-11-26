@@ -31,15 +31,36 @@ type MatrixDef struct {
 }
 
 type Matrix interface {
-	utils.Comparable
 	utils.Stringable
-	Cloneable
+	MatrixCloneable
 	// Get retrieves the value in the (i, j) position of the matrix
-	Get(i, j int) float64
+	GetCell(i, j int) float64
 	// Set updates the value in the (i, j) position
-	Set(i, j int, value float64)
+	SetCell(i, j int, value float64)
+	GetNDim() int
 }
 
-type Cloneable interface {
-	Clone(matDef MatrixDef) Matrix
+type MatrixCloneable interface {
+	// Clone returns a Matrix
+	Clone(matDef MatrixDef) interface{}
+}
+
+// CompareMatrices returns true if both matrices contain equal cells or both are nil,
+// otherwise returns false
+func CompareMatrices(matA, matB Matrix) bool {
+	matNDim := matA.GetNDim()
+
+	if matNDim != matB.GetNDim() {
+		return false
+	} else {
+		for i := 0; i < matNDim; i++ {
+			for j := 0; j < matNDim; j++ {
+				if !utils.CompareFloats(matA.GetCell(i, j), matB.GetCell(i, j), utils.Epsilon) {
+					return false
+				}
+			}
+		}
+
+		return true
+	}
 }

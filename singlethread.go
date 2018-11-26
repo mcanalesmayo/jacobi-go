@@ -11,14 +11,14 @@ func runSinglethreadedJacobi(matrixType matrix.MatrixType, initialValue float64,
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
 	var matA matrix.Matrix
 	if matrixType == matrix.TwoDimMatrixType {
-		matA = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+		matA = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot).(matrix.Matrix)
 	} else {
-		matA = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+		matA = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot).(matrix.Matrix)
 	}
 	matB := matA.Clone(matrix.MatrixDef{
 		matrix.Coords{0, 0, nDim + 1, nDim + 1},
 		nDim + 2,
-	})
+	}).(matrix.Matrix)
 
 	matrixIters, nIters, maxDiff := nDim+1, 0, math.MaxFloat64
 
@@ -28,8 +28,8 @@ func runSinglethreadedJacobi(matrixType matrix.MatrixType, initialValue float64,
 		for i := 1; i < matrixIters; i++ {
 			for j := 1; j < matrixIters; j++ {
 				// Compute new value with 3x3 filter with no corners
-				matB.Set(i, j, 0.2 * (matA.Get(i, j) + matA.Get(i-1, j) + matA.Get(i+1, j) + matA.Get(i, j-1) + matA.Get(i, j+1)))
-				maxDiff = math.Max(maxDiff, math.Abs(matA.Get(i, j)-matB.Get(i, j)))
+				matB.SetCell(i, j, 0.2 * (matA.GetCell(i, j) + matA.GetCell(i-1, j) + matA.GetCell(i+1, j) + matA.GetCell(i, j-1) + matA.GetCell(i, j+1)))
+				maxDiff = math.Max(maxDiff, math.Abs(matA.GetCell(i, j)-matB.GetCell(i, j)))
 			}
 		}
 

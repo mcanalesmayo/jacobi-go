@@ -175,7 +175,7 @@ func (worker worker) mergeSubproblem(resMat, subprobResMat matrix.Matrix) {
 	for i := x0; i <= x1; i++ {
 		for j := y0; j <= y1; j++ {
 			// Values are ordered by the sender
-			resMat.Set(i, j, subprobResMat.Get(i-x0, j-y0))
+			resMat.SetCell(i, j, subprobResMat.GetCell(i-x0, j-y0))
 		}
 	}
 }
@@ -187,7 +187,7 @@ func (worker worker) computeNewMaxDiff(matB, matA matrix.Matrix) float64 {
 	// My subproblem maxDiff
 	for i := 0; i < matLen; i++ {
 		for j := 0; j < matLen; j++ {
-			maxDiff = math.Max(maxDiff, math.Abs(matB.Get(i, j)-matA.Get(i, j)))
+			maxDiff = math.Max(maxDiff, math.Abs(matB.GetCell(i, j)-matA.GetCell(i, j)))
 		}
 	}
 
@@ -232,22 +232,22 @@ func (worker worker) sendOuterCells(mat matrix.Matrix) {
 	// checks are done for every jacobi iteration
 	if worker.rowNumber != 0 {
 		for j := 0; j < matLen; j++ {
-			worker.adjacents.toTopWorker <- mat.Get(0, j)
+			worker.adjacents.toTopWorker <- mat.GetCell(0, j)
 		}
 	}
 	if worker.rowNumber != nThreadsSqrt-1 {
 		for j := 0; j < matLen; j++ {
-			worker.adjacents.toBottomWorker <- mat.Get(matLen-1, j)
+			worker.adjacents.toBottomWorker <- mat.GetCell(matLen-1, j)
 		}
 	}
 	if worker.columnNumber != 0 {
 		for i := 0; i < matLen; i++ {
-			worker.adjacents.toLeftWorker <- mat.Get(i, 0)
+			worker.adjacents.toLeftWorker <- mat.GetCell(i, 0)
 		}
 	}
 	if worker.columnNumber != nThreadsSqrt-1 {
 		for i := 0; i < matLen; i++ {
-			worker.adjacents.toRightWorker <- mat.Get(i, matLen-1)
+			worker.adjacents.toRightWorker <- mat.GetCell(i, matLen-1)
 		}
 	}
 }
@@ -285,25 +285,25 @@ func (worker worker) computeOuterCells(dst, src matrix.Matrix) {
 
 	// Outer cells in the corners are a special case
 	// Top-left corner
-	dst.Set(0, 0, 0.2 * (src.Get(0, 0) + worker.adjacents.leftValues[0] + src.Get(0, 1) + worker.adjacents.topValues[0] + src.Get(1, 0)))
+	dst.SetCell(0, 0, 0.2 * (src.GetCell(0, 0) + worker.adjacents.leftValues[0] + src.GetCell(0, 1) + worker.adjacents.topValues[0] + src.GetCell(1, 0)))
 	// Top-right corner
-	dst.Set(0, matLen-1, 0.2 * (src.Get(0, matLen-1) + src.Get(0, matLen-2) + worker.adjacents.rightValues[0] + worker.adjacents.topValues[matLen-1] + src.Get(1, matLen-1)))
+	dst.SetCell(0, matLen-1, 0.2 * (src.GetCell(0, matLen-1) + src.GetCell(0, matLen-2) + worker.adjacents.rightValues[0] + worker.adjacents.topValues[matLen-1] + src.GetCell(1, matLen-1)))
 	// Bottom-left corner
-	dst.Set(matLen-1, 0, 0.2 * (src.Get(matLen-1, 0) + worker.adjacents.leftValues[matLen-1] + src.Get(matLen-1, 1) + src.Get(matLen-2, 0) + worker.adjacents.bottomValues[0]))
+	dst.SetCell(matLen-1, 0, 0.2 * (src.GetCell(matLen-1, 0) + worker.adjacents.leftValues[matLen-1] + src.GetCell(matLen-1, 1) + src.GetCell(matLen-2, 0) + worker.adjacents.bottomValues[0]))
 	// Bottom-right corner
-	dst.Set(matLen-1, matLen-1, 0.2 * (src.Get(matLen-1, matLen-1) + src.Get(matLen-1, matLen-2) + worker.adjacents.rightValues[matLen-1] + src.Get(matLen-2, matLen-1) + worker.adjacents.bottomValues[matLen-1]))
+	dst.SetCell(matLen-1, matLen-1, 0.2 * (src.GetCell(matLen-1, matLen-1) + src.GetCell(matLen-1, matLen-2) + worker.adjacents.rightValues[matLen-1] + src.GetCell(matLen-2, matLen-1) + worker.adjacents.bottomValues[matLen-1]))
 
 	// Rest of outer cells
 	// TODO: This is probably not the best way to compute the outer cells in terms of performance
 	for k := 1; k < matLen-1; k++ {
 		// Top outer cells
-		dst.Set(0, k, 0.2 * (src.Get(0, k) + src.Get(0, k-1) + src.Get(0, k+1) + worker.adjacents.topValues[k] + src.Get(1, k)))
+		dst.SetCell(0, k, 0.2 * (src.GetCell(0, k) + src.GetCell(0, k-1) + src.GetCell(0, k+1) + worker.adjacents.topValues[k] + src.GetCell(1, k)))
 		// Bottom outer cells
-		dst.Set(matLen-1, k, 0.2 * (src.Get(matLen-1, k) + src.Get(matLen-1, k-1) + src.Get(matLen-1, k+1) + src.Get(matLen-2, k) + worker.adjacents.bottomValues[k]))
+		dst.SetCell(matLen-1, k, 0.2 * (src.GetCell(matLen-1, k) + src.GetCell(matLen-1, k-1) + src.GetCell(matLen-1, k+1) + src.GetCell(matLen-2, k) + worker.adjacents.bottomValues[k]))
 		// Left outer cells
-		dst.Set(k, 0, 0.2 * (src.Get(k, 0) + worker.adjacents.leftValues[k] + src.Get(k, 1) + src.Get(k-1, 0) + src.Get(k+1, 0)))
+		dst.SetCell(k, 0, 0.2 * (src.GetCell(k, 0) + worker.adjacents.leftValues[k] + src.GetCell(k, 1) + src.GetCell(k-1, 0) + src.GetCell(k+1, 0)))
 		// Right outer cells
-		dst.Set(k, matLen-1, 0.2 * (src.Get(k, matLen-1) + src.Get(k, matLen-2) + worker.adjacents.rightValues[k] + src.Get(k-1, matLen-1) + src.Get(k+1, matLen-1)))
+		dst.SetCell(k, matLen-1, 0.2 * (src.GetCell(k, matLen-1) + src.GetCell(k, matLen-2) + worker.adjacents.rightValues[k] + src.GetCell(k-1, matLen-1) + src.GetCell(k+1, matLen-1)))
 	}
 }
 
@@ -345,12 +345,11 @@ func (worker worker) setupBoundaries(initialValue, topBoundary, bottomBoundary, 
 func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64, maxIters int, tolerance float64, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	var matA, matB matrix.Matrix
 	maxDiff, matDef, matLen := math.MaxFloat64, worker.matDef, worker.matDef.Size
 
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
-	matA, matB = resMat.Clone(matDef), resMat.Clone(matDef)
+	matA, matB := resMat.Clone(matDef).(matrix.Matrix), resMat.Clone(matDef).(matrix.Matrix)
 
 	worker.setupBoundaries(initialValue, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
 
@@ -361,7 +360,7 @@ func (worker worker) solveSubproblem(resMat matrix.Matrix, initialValue float64,
 		for i := 1; i < matLen-1; i++ {
 			for j := 1; j < matLen-1; j++ {
 				// Compute new value with 3x3 filter with no corners
-				matB.Set(i, j, 0.2 * (matA.Get(i, j) + matA.Get(i-1, j) + matA.Get(i+1, j) + matA.Get(i, j-1) + matA.Get(i, j+1)))
+				matB.SetCell(i, j, 0.2 * (matA.GetCell(i, j) + matA.GetCell(i-1, j) + matA.GetCell(i+1, j) + matA.GetCell(i, j-1) + matA.GetCell(i, j+1)))
 			}
 		}
 
@@ -392,9 +391,9 @@ func runMultithreadedJacobi(matrixType matrix.MatrixType, initialValue float64, 
 
 	var resMat matrix.Matrix
 	if matrixType == matrix.TwoDimMatrixType {
-		resMat = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+		resMat = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot).(matrix.Matrix)
 	} else {
-		resMat = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+		resMat = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot).(matrix.Matrix)
 	}
 
 	maxDiffResToRoot, maxDiffResFromRoot := make([]chan float64, nThreads), make([]chan float64, nThreads)

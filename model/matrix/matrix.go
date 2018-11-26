@@ -15,13 +15,27 @@ const (
 	OneDimMatrixType = 1
 )
 
+// MatrixType defines the underlying representation of a matrix
 type MatrixType int
 
+// ToString returns a string representation of a matrix
 func (matrixType MatrixType) ToString() string {
 	if matrixType == TwoDimMatrixType {
 		return "Two dimensions matrix"
 	}
 	return "One dimension matrix"
+}
+
+// Matrix defines a matrix
+type Matrix interface {
+	utils.Stringable
+	MatrixCloneable
+	// GetCell retrieves the value in the (i, j) position
+	GetCell(i, j int) float64
+	// SetCell updates the value in the (i, j) position
+	SetCell(i, j int, value float64)
+	// GetNDim retrieves the length of the matrix
+	GetNDim() int
 }
 
 // Coords defines a 2D square
@@ -37,16 +51,7 @@ type MatrixDef struct {
 	Size int
 }
 
-type Matrix interface {
-	utils.Stringable
-	MatrixCloneable
-	// Get retrieves the value in the (i, j) position of the matrix
-	GetCell(i, j int) float64
-	// Set updates the value in the (i, j) position
-	SetCell(i, j int, value float64)
-	GetNDim() int
-}
-
+// MatrixCloneable represents a matrix that can be cloned
 type MatrixCloneable interface {
 	// Clone returns a Matrix
 	Clone(matDef MatrixDef) Matrix

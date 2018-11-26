@@ -40,14 +40,17 @@ func NewOneDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, l
 	return mat
 }
 
+// GetCell retrieves the value in the (i, j) position
 func (mat OneDimMatrix) GetCell(i, j int) float64 {
 	return mat.matrix[i*mat.nDim+j]
 }
 
+// SetCell updates the value in the (i, j) position
 func (mat OneDimMatrix) SetCell(i, j int, value float64) {
 	mat.matrix[i*mat.nDim+j] = value
 }
 
+// GetNDim retrieves the length of the matrix
 func (mat OneDimMatrix) GetNDim() int {
 	return mat.nDim
 }

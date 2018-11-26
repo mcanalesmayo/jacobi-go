@@ -38,14 +38,17 @@ func NewTwoDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, l
 	return mat
 }
 
+// GetCell retrieves the value in the (i, j) position
 func (mat TwoDimMatrix) GetCell(i, j int) float64 {
 	return mat[i][j]
 }
 
+// SetCell updates the value in the (i, j) position
 func (mat TwoDimMatrix) SetCell(i, j int, value float64) {
 	mat[i][j] = value
 }
 
+// GetNDim retrieves the length of the matrix
 func (mat TwoDimMatrix) GetNDim() int {
 	return len(mat)
 }

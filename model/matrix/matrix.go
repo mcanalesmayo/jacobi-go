@@ -9,9 +9,9 @@ const (
 	Hot = 1.0
 	// Cold is the value a cold state of a cell
 	Cold = 0.0
-	// TwoDimMatrix is the code to represent a TwoDimMatrix
+	// TwoDimMatrixType is the code to represent a TwoDimMatrix
 	TwoDimMatrixType = 0
-	// OneDimMatrix is the code to represent a OneDimMatrix
+	// OneDimMatrixType is the code to represent a OneDimMatrix
 	OneDimMatrixType = 1
 )
 

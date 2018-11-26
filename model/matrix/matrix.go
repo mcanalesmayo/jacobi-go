@@ -49,7 +49,7 @@ type Matrix interface {
 
 type MatrixCloneable interface {
 	// Clone returns a Matrix
-	Clone(matDef MatrixDef) interface{}
+	Clone(matDef MatrixDef) Matrix
 }
 
 // CompareMatrices returns true if both matrices contain equal cells or both are nil,

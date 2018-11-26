@@ -51,7 +51,7 @@ func (mat TwoDimMatrix) GetNDim() int {
 }
 
 // Clone clones the portion of the matrix specified by a TwoDimMatrixDef
-func (mat TwoDimMatrix) Clone(matDef MatrixDef) interface{} {
+func (mat TwoDimMatrix) Clone(matDef MatrixDef) Matrix {
 	x0, y0, x1, y1, length := matDef.Coords.X0, matDef.Coords.Y0, matDef.Coords.X1, matDef.Coords.Y1, matDef.Size
 
 	clone := make(TwoDimMatrix, length)

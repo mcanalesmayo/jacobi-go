@@ -59,7 +59,7 @@ func BenchmarkSingleVsMultithreading(b *testing.B) {
 	for _, params := range experiments {
 		b.Run(fmt.Sprintf("%.4f,%d,%d,%.4f,%d,%s", params.initialValue, params.nDim, params.maxIters, params.tolerance, params.nThreads, params.matrixType.ToString()), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				jacobi.RunJacobi(params.initialValue, params.nDim, params.maxIters, params.tolerance, params.nThreads, params.matrixType, )
+				jacobi.RunJacobi(params.initialValue, params.nDim, params.maxIters, params.tolerance, params.nThreads, params.matrixType)
 			}
 		})
 	}

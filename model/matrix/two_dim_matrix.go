@@ -17,7 +17,7 @@ func NewTwoDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, l
 	// Init inner cells value
 	for i := range mat {
 		// TODO: Look into how Go allocates the memory. Are rows contiguous? => Cache & Performance
-		mat[i] = make([]float64, n)
+		mat[i] = make(row, n)
 		for j := range mat[i] {
 			mat.SetCell(i, j, initialValue)
 		}

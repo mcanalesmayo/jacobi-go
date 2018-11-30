@@ -32,14 +32,14 @@ func TestRunJacobi(t *testing.T) {
 	}
 
 	nThreadsExpectedSuccessCases := []int{1, 4}
-	matrixTypeExpectedSuccessCases := []matrix.MatrixType{matrix.TwoDimMatrixType, matrix.OneDimMatrixType}
+	matrixTypeExpectedSuccessCases := []matrix.MatrixType{matrix.TwoDimDividedMatrixType, matrix.TwoDimContiguousMatrixType, matrix.OneDimMatrixType}
 
 	for _, nThreads := range nThreadsExpectedSuccessCases {
 		for _, matrixType := range matrixTypeExpectedSuccessCases {
-			fmt.Printf("Running simulation with matrix type='%s', initial value=%.4f, num dims=%d, max iterations=%d, tolerance=%.4f and num threads=%d\n",
-				matrixType.ToString(), initialValue, nDim, maxIters, tolerance, nThreads)
+			fmt.Printf("Running simulation with initial value=%.4f, num dims=%d, max iterations=%d, tolerance=%.4f, num threads=%d and matrix type='%s'\n",
+				initialValue, nDim, maxIters, tolerance, nThreads, matrixType.ToString())
 
-			actualMat, _, _ := jacobi.RunJacobi(matrixType, initialValue, nDim, maxIters, tolerance, nThreads)
+			actualMat, _, _ := jacobi.RunJacobi(initialValue, nDim, maxIters, tolerance, nThreads, matrixType)
 			if !matrix.CompareMatrices(actualMat, expectedMat) {
 				t.Errorf("Expected matrix doesn't match the actual one")
 			}

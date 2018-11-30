@@ -11,27 +11,39 @@ type TwoDimMatrix []row
 // row represents a 1D array belonging to a TwoDimMatrix
 type row []float64
 
-// NewTwoDimMatrix creates and initializes a 2D array representing a matrix
-func NewTwoDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) TwoDimMatrix {
+// NewTwoDimDividedMatrix creates and initializes a 2D array representing a matrix
+func NewTwoDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64, matrixType MatrixType) TwoDimMatrix {
+	// Allocate matrix
 	mat := make(TwoDimMatrix, n)
-	// Init inner cells value
-	for i := range mat {
-		// TODO: Look into how Go allocates the memory. Are rows contiguous? => Cache & Performance
-		mat[i] = make(row, n)
-		for j := range mat[i] {
+	if matrixType == TwoDimDividedMatrixType {
+		// Not ensured to be contiguous
+		for i := 0; i < n; i++ {
+			mat[i] = make(row, n)
+		}
+	} else {
+		// Ensure contiguous allocation
+		rows := make(row, n*n)
+		for i := 0; i < n; i++ {
+			mat[i] = rows[i*n : (i+1)*n]
+		}
+	}
+
+	// Init inner cells
+	for i := 1; i < n-1; i++ {
+		for j := 0; j < n-1; j++ {
 			mat.SetCell(i, j, initialValue)
 		}
 	}
 
 	// Init top, right and left boundaries
-	for i := range mat {
+	for i := 0; i < n; i++ {
 		mat.SetCell(0, i, topBoundary)
 		mat.SetCell(i, 0, leftBoundary)
 		mat.SetCell(i, n-1, rightBoundary)
 	}
 
 	// Init bottom boundary
-	for j := range mat {
+	for j := 0; j < n; j++ {
 		mat.SetCell(n-1, j, bottomBoundary)
 	}
 

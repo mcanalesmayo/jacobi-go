@@ -9,10 +9,12 @@ const (
 	Hot = 1.0
 	// Cold is the value a cold state of a cell
 	Cold = 0.0
-	// TwoDimMatrixType is the code to represent a TwoDimMatrix
-	TwoDimMatrixType = 0
+	// TwoDimDividedMatrixType is the code to represent a TwoDimMatrix which is not ensured to be contiguous in memory
+	TwoDimDividedMatrixType = 0
+	// TwoDimContiguousMatrix is the code to represent a TwoDimMatrix which is not ensured to be contiguous in memory
+	TwoDimContiguousMatrixType = 1
 	// OneDimMatrixType is the code to represent a OneDimMatrix
-	OneDimMatrixType = 1
+	OneDimMatrixType = 2
 )
 
 // MatrixType defines the underlying representation of a matrix
@@ -20,10 +22,14 @@ type MatrixType int
 
 // ToString returns a string representation of a matrix
 func (matrixType MatrixType) ToString() string {
-	if matrixType == TwoDimMatrixType {
-		return "Two dimensions matrix"
+	switch matrixType {
+	case OneDimMatrixType:
+		return "One dimension matrix"
+	case TwoDimDividedMatrixType:
+		return "Two dimensions matrix (not ensured to be contiguous)"
+	default:
+		return "Two dimensions contiguous matrix"
 	}
-	return "One dimension matrix"
 }
 
 // Matrix defines a matrix

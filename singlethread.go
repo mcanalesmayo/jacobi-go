@@ -6,14 +6,14 @@ import (
 )
 
 // runSinglethreadedJacobi runs a single-threaded version of the jacobi method
-func runSinglethreadedJacobi(matrixType matrix.MatrixType, initialValue float64, nDim int, maxIters int, tolerance float64) (matrix.Matrix, int, float64) {
+func runSinglethreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, matrixType matrix.MatrixType) (matrix.Matrix, int, float64) {
 	// The algorithm requires computing each grid cell as a 3x3 filter with no corners
 	// Therefore, we need an aux matrix to keep the grid values in every iteration after computing new values
 	var matA matrix.Matrix
-	if matrixType == matrix.TwoDimMatrixType {
-		matA = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
-	} else {
+	if matrixType == matrix.OneDimMatrixType {
 		matA = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+	} else {
+		matA = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot, matrixType)
 	}
 	matB := matA.Clone(matrix.MatrixDef{
 		matrix.Coords{0, 0, nDim + 1, nDim + 1},

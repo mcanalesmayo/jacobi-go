@@ -384,16 +384,16 @@ func validatePreconditions(nDim, nThreads int) bool {
 }
 
 // runMultithreadedJacobi runs a multi-threaded version of the jacobi method using Go routines
-func runMultithreadedJacobi(matrixType matrix.MatrixType, initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int) (matrix.Matrix, int, float64) {
+func runMultithreadedJacobi(initialValue float64, nDim int, maxIters int, tolerance float64, nThreads int, matrixType matrix.MatrixType) (matrix.Matrix, int, float64) {
 	if !validatePreconditions(nDim, nThreads) {
 		os.Exit(invalidProblemParams)
 	}
 
 	var resMat matrix.Matrix
-	if matrixType == matrix.TwoDimMatrixType {
-		resMat = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
-	} else {
+	if matrixType == matrix.OneDimMatrixType {
 		resMat = matrix.NewOneDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot)
+	} else {
+		resMat = matrix.NewTwoDimMatrix(initialValue, nDim+2, matrix.Hot, matrix.Cold, matrix.Hot, matrix.Hot, matrixType)
 	}
 
 	maxDiffResToRoot, maxDiffResFromRoot := make([]chan float64, nThreads), make([]chan float64, nThreads)

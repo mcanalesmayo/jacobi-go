@@ -13,11 +13,11 @@ type row []float64
 
 // NewTwoDimMatrix creates and initializes a 2D array representing a matrix
 func NewTwoDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64) TwoDimMatrix {
-	mat := make(TwoDimMatrix, n, n)
+	mat := make(TwoDimMatrix, n)
 	// Init inner cells value
 	for i := range mat {
 		// TODO: Look into how Go allocates the memory. Are rows contiguous? => Cache & Performance
-		mat[i] = make([]float64, n, n)
+		mat[i] = make([]float64, n)
 		for j := range mat[i] {
 			mat.SetCell(i, j, initialValue)
 		}

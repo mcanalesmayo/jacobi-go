@@ -11,7 +11,7 @@ type TwoDimMatrix []row
 // row represents a 1D array belonging to a TwoDimMatrix
 type row []float64
 
-// NewTwoDimDividedMatrix creates and initializes a 2D array representing a matrix
+// NewTwoDimMatrix creates and initializes a 2D array representing a matrix
 func NewTwoDimMatrix(initialValue float64, n int, topBoundary, bottomBoundary, leftBoundary, rightBoundary float64, matrixType MatrixType) TwoDimMatrix {
 	// Allocate matrix
 	mat := make(TwoDimMatrix, n)

@@ -11,7 +11,7 @@ const (
 	Cold = 0.0
 	// TwoDimDividedMatrixType is the code to represent a TwoDimMatrix which is not ensured to be contiguous in memory
 	TwoDimDividedMatrixType = 0
-	// TwoDimContiguousMatrix is the code to represent a TwoDimMatrix which is not ensured to be contiguous in memory
+	// TwoDimContiguousMatrixType is the code to represent a TwoDimMatrix which is not ensured to be contiguous in memory
 	TwoDimContiguousMatrixType = 1
 	// OneDimMatrixType is the code to represent a OneDimMatrix
 	OneDimMatrixType = 2

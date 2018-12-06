@@ -112,7 +112,7 @@ It makes sense that for small matrix sizes it's not worth to use multithreading 
 
 The main workloads involved in the problem are:
 * Computing the inner cells values of the worker matrix (its assigned subproblem). The time of this workload depends on `(subSideLength-1)*(subSideLength-1)`, which is `O(subSideLength^2)`, being `subSideLength` the length of each side of a routine submatrix.
-* Reducing the `maxDiff` values, which depends on the number of routines (not the size of the matrix). We can consider it to be `O(nRoutines)`, as the reduce is done by a single routine which collects the values from all other routines and computes the max value.
-* Sharing the outer cells values to adjacent workers will also get hidden by the execution time of computing the inner cells, as the number of outer cells values is `4*sideLength` in the worst case, which makes this workload grow by `O(sideLength)`.
+* Reducing the `maxDiff` values, which depends on the number of routines (not the size of the matrix). We can consider it to be `O(nRoutines)`, as the reduce is done by a single routine which collects the values from all other routines and computes the max value. Hence, this time will get hidden by the time to compute the inner cells values.
+* Sharing the outer cells values to adjacent workers. This will also get hidden, as the number of outer cells values is `4*sideLength` in the worst case, which makes this workload grow by `O(sideLength)`.
 
 In terms of space, the total memory used by the program grows by `2*(sideLength^2)`, because the main routine uses a `sideLength` x `sideLength` matrix and the sum of all other routines submatrices size is also `sideLength` x `sideLength`. Therefore, the space usage grows by `O(sideLength^2)`, which is the same as the single-threaded version one.

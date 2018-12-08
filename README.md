@@ -48,9 +48,9 @@ To run the benchmark:
 ```
 cd jacobi-go
 # For CPU and memory profiles
-go test -v -cpuprofile=cpuprof.out -memprofile=memprof.out -bench=. benchmark/benchmark_test.go
+go test -v -cpuprofile=cpuprof.out -memprofile=memprof.out -bench=. benchmark/benchmark_multithreading.go
 # For traces
-go test -v -trace=trace.out -bench=. benchmark/benchmark_test.go
+go test -v -trace=trace.out -bench=. benchmark/benchmark_multithreading.go
 ```
 
 To visualize the cpu metrics (same thing works for memory metrics) in PNG format or via web browser:

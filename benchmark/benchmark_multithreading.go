@@ -17,6 +17,7 @@ type experiment struct {
 	nThreads     int
 }
 
+// BenchmarkSingleVsMultithreading runs the single-threaded and multi-threaded versions for different matrix sizes.
 func BenchmarkSingleVsMultithreading(b *testing.B) {
 	experiments := []experiment{
 		{matrix.TwoDimContiguousMatrixType, 0.5, 16, 1000, 1.0e-4, 1},

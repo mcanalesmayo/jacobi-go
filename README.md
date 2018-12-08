@@ -100,7 +100,7 @@ For 4096x4096:
 
 ![Overview for 4096x4096 matrix solved by 4 Go routines](doc/img/traces/4096_4_goroutine.png)
 
-Taking a deeper look into the traces, we can see that for the 16x16 problem it's not worth to run several routines, as the execution time is almost hidden by the send<->receive synchronization, as for each iteration all workers need to share the outer cells of their subproblem and also reduce the max value of the diff. Keep in mind that the scale of the following image is in µs and there are a lot of holes, which can be considered as synchronization points:
+Taking a deeper look into the traces, we can see that for the 16x16 problem it's not worth to run several routines, as the execution time is almost hidden by the send<->receive synchronization. This is because for each iteration all workers need to share the outer cells of their subproblem and also reduce the max value of the diff. Keep in mind that the scale of the following image is in µs and there are a lot of holes, which can be considered as synchronization points:
 
 ![Traces for 16x16 matrix solved by 4 Go routines](doc/img/traces/16_4_traces.png)
 
